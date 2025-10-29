@@ -57,7 +57,7 @@ See [requirements.txt](requirements.txt) and [requirements-dev.txt](requirements
 
 ## Database schema
 
-![](/readme/database-schema.jpg)
+![](/readme/schema.jpg)
 
 ---
 
