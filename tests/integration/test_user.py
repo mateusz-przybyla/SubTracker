@@ -148,6 +148,7 @@ def test_get_user_details(client, create_user_details):
     assert response.json == {
         "id": 1,
         "email": create_user_details[1],
+        "created_at": response.json["created_at"],
     }
 
 def test_get_user_details_missing(client):
