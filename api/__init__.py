@@ -5,6 +5,7 @@ from api.config import Config
 from api.extensions import api, jwt, db, migrate, email_queue
 from api.resources.test import blp as TestBlueprint
 from api.resources.user import blp as UserBlueprint
+from api.resources.subscription import blp as SubscriptionBlueprint
 from api import jwt_callbacks
 
 def create_app(test_config=None):
@@ -23,6 +24,7 @@ def create_app(test_config=None):
 
     api.register_blueprint(TestBlueprint)
     api.register_blueprint(UserBlueprint)
+    api.register_blueprint(SubscriptionBlueprint)
 
     app.email_queue = email_queue
 
