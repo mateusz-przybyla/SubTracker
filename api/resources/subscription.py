@@ -1,8 +1,8 @@
 from flask.views import MethodView
 from flask_smorest import Blueprint
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from api.schemas import SubscriptionSchema
-from api.services.subscription import create_subscription, get_user_subscriptions, delete_subscription, get_subscription_by_id
+from api.schemas import SubscriptionSchema, SubscriptionUpdateSchema
+from api.services.subscription import create_subscription, get_user_subscriptions, delete_subscription, get_subscription_by_id, update_subscription
 
 blp = Blueprint("subscription", __name__, description="Operations on subscriptions")
 
@@ -28,6 +28,13 @@ class Subscription(MethodView):
     def get(self, sub_id):
         user_id = get_jwt_identity()
         return get_subscription_by_id(sub_id, user_id), 200
+    
+    @jwt_required()
+    @blp.arguments(SubscriptionUpdateSchema)
+    @blp.response(200, SubscriptionSchema)
+    def put(self, update_data, sub_id):
+        user_id = get_jwt_identity()
+        return update_subscription(sub_id, user_id, update_data), 200
     
     @jwt_required()
     @blp.response(200, SubscriptionSchema)

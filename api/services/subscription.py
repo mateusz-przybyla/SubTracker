@@ -32,6 +32,21 @@ def get_subscription_by_id(sub_id, user_id):
     except SQLAlchemyError:
         abort(500, message="An error occurred while fetching the subscription.")
 
+def update_subscription(sub_id, user_id, data):
+    try:
+        subscription = SubscriptionModel.query.filter_by(id=sub_id, user_id=user_id).first()
+        if not subscription:
+            abort(404, message="Subscription not found.")
+
+        for key, value in data.items():
+            setattr(subscription, key, value)
+
+        db.session.commit()
+        return subscription
+    except SQLAlchemyError:
+        db.session.rollback()
+        abort(500, message="An error occurred while updating the subscription.")
+
 def delete_subscription(sub_id, user_id):
     try:
         subscription = SubscriptionModel.query.filter_by(id=sub_id, user_id=user_id).first()

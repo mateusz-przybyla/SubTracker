@@ -9,3 +9,11 @@ class SubscriptionSchema(Schema):
     next_payment_date = fields.Date(required=True)
     category = fields.Str(validate=validate.Length(max=80))
     created_at = fields.DateTime(format="%Y-%m-%d %H:%M:%S", dump_only=True)
+    updated_at = fields.DateTime(format="%Y-%m-%d %H:%M:%S", dump_only=True)
+
+class SubscriptionUpdateSchema(Schema):
+    name = fields.Str(validate=validate.Length(max=120))
+    price = fields.Decimal(as_string=True)
+    billing_cycle = fields.Str(validate=validate.Length(max=20))
+    next_payment_date = fields.Date()
+    category = fields.Str(validate=validate.Length(max=80))
