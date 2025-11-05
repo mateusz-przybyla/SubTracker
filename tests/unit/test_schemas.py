@@ -114,7 +114,6 @@ def test_register_schema_username_too_short(register_schema):
 
 def test_subscription_schema_valid(subscription_schema):
     data = {
-        "user_id": 1,
         "name": "Netflix",
         "price": "29.99",
         "billing_cycle": "monthly",
@@ -131,7 +130,6 @@ def test_subscription_schema_valid(subscription_schema):
 
 def test_subscription_schema_invalid_price(subscription_schema):
     data = {
-        "user_id": 1,
         "name": "Spotify",
         "price": "invalid-price",
         "billing_cycle": "monthly",
@@ -146,7 +144,6 @@ def test_subscription_schema_invalid_price(subscription_schema):
 
 def test_subscription_schema_invalid_date(subscription_schema):
     data = {
-        "user_id": 1,
         "name": "Hulu",
         "price": "19.99",
         "billing_cycle": "monthly",
@@ -162,7 +159,6 @@ def test_subscription_schema_invalid_date(subscription_schema):
 
 def test_subscription_schema_missing_required_fields(subscription_schema):
     data = {
-        "user_id": 1,
         "price": "19.99",
         "billing_cycle": "monthly"
     }

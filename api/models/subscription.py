@@ -20,5 +20,9 @@ class SubscriptionModel(db.Model):
     user = db.relationship("UserModel", back_populates="subscriptions")
     reminders = db.relationship("ReminderLogModel", back_populates="subscription", cascade="all, delete-orphan")
 
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'name', name='unique_user_subscription_name'),
+    )
+
     def __repr__(self):
         return f"<Subscription id={self.id} name={self.name} user_id={self.user_id}>"
