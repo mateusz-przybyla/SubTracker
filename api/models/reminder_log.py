@@ -1,5 +1,5 @@
+from sqlalchemy import DateTime
 from sqlalchemy.sql import func
-from sqlalchemy.sql.sqltypes import TIMESTAMP
 from api.extensions import db
 
 class ReminderLogModel(db.Model):
@@ -10,7 +10,7 @@ class ReminderLogModel(db.Model):
     message = db.Column(db.Text, nullable=True)
     success = db.Column(db.Boolean, default=True)
 
-    sent_at = db.Column(TIMESTAMP(timezone=True), server_default=func.now(), nullable=False)
+    sent_at = db.Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     # Relationships
     subscription = db.relationship("SubscriptionModel", back_populates="reminders")

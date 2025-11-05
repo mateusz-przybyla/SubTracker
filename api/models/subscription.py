@@ -1,5 +1,5 @@
+from sqlalchemy import DateTime
 from sqlalchemy.sql import func
-from sqlalchemy.sql.sqltypes import TIMESTAMP
 from api.extensions import db
 
 class SubscriptionModel(db.Model):
@@ -13,8 +13,8 @@ class SubscriptionModel(db.Model):
     next_payment_date = db.Column(db.Date, nullable=False)
     category = db.Column(db.String(80), nullable=True)
 
-    created_at = db.Column(TIMESTAMP(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = db.Column(TIMESTAMP(timezone=True), server_default=func.now(), server_onupdate=func.now(), nullable=False)
+    created_at = db.Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = db.Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
     # Relationships
     user = db.relationship("UserModel", back_populates="subscriptions")
