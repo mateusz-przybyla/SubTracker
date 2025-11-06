@@ -1,6 +1,7 @@
 from sqlalchemy import DateTime
 from sqlalchemy.sql import func
 from api.extensions import db
+from api.models.enums import BillingCycleEnum
 
 class SubscriptionModel(db.Model):
     __tablename__ = "subscriptions"
@@ -9,7 +10,7 @@ class SubscriptionModel(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     name = db.Column(db.String(120), nullable=False)
     price = db.Column(db.Numeric(10, 2), nullable=False)
-    billing_cycle = db.Column(db.String(20), nullable=False)
+    billing_cycle = db.Column(db.Enum(BillingCycleEnum), nullable=False)
     next_payment_date = db.Column(db.Date, nullable=False)
     category = db.Column(db.String(80), nullable=True)
 
