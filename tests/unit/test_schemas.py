@@ -3,8 +3,9 @@ from marshmallow import ValidationError
 from decimal import Decimal
 from datetime import date
 
-from api.schemas import UserSchema, UserRegisterSchema, SubscriptionSchema, ReminderLogSchema
+from api.schemas import UserSchema, UserRegisterSchema, SubscriptionSchema, SubscriptionUpdateSchema, ReminderLogSchema
 from api.models import UserModel
+from api.models.enums import BillingCycleEnum
 
 # -------------------------
 # Fixtures
@@ -21,6 +22,10 @@ def register_schema():
 @pytest.fixture
 def subscription_schema():
     return SubscriptionSchema()
+
+@pytest.fixture
+def subscription_update_schema():
+    return SubscriptionUpdateSchema()
 
 @pytest.fixture
 def reminder_log_schema():
@@ -125,8 +130,9 @@ def test_subscription_schema_valid(subscription_schema):
 
     assert loaded['name'] == "Netflix"
     assert Decimal(loaded['price']) == Decimal("29.99")
-    assert loaded['billing_cycle'] == "monthly"
+    assert loaded['billing_cycle'] == BillingCycleEnum.monthly
     assert isinstance(loaded['next_payment_date'], date)
+    assert loaded['category'] == "Entertainment"
 
 def test_subscription_schema_invalid_price(subscription_schema):
     data = {
@@ -163,9 +169,56 @@ def test_subscription_schema_missing_required_fields(subscription_schema):
         "billing_cycle": "monthly"
     }
     
-    with pytest.raises(Exception):
+    with pytest.raises(Exception) as exc_info:
         subscription_schema.load(data) 
+    
+    errors = exc_info.value.messages
+    assert "name" in errors
+    assert "next_payment_date" in errors
 
+def test_subscription_schema_invalid_billing_cycle(subscription_schema):
+    data = {
+        "name": "Disney+",
+        "price": "15.99",
+        "billing_cycle": "invalid_cycle",  # Invalid billing cycle
+        "next_payment_date": "2025-10-01"
+    }
+
+    with pytest.raises(ValidationError) as exc_info:
+        subscription_schema.load(data)
+
+    errors = exc_info.value.messages
+    assert "billing_cycle" in errors
+
+# ---------------------------
+# SubscriptionUpdateSchema (update)
+# ---------------------------
+
+def test_subscription_update_schema_partial_update(subscription_update_schema):
+    data = {"price": "15.00"}
+
+    loaded = subscription_update_schema.load(data)
+
+    assert loaded['price'] == Decimal("15.00")
+    assert "name" not in loaded
+    assert "billing_cycle" not in loaded
+    assert "next_payment_date" not in loaded
+
+def test_subscription_update_schema_invalid_enum(subscription_update_schema):
+    data = {"billing_cycle": "monthly1"}
+
+    with pytest.raises(ValidationError) as exc_info:
+        subscription_update_schema.load(data)
+
+    errors = exc_info.value.messages
+    assert "billing_cycle" in errors
+
+def test_subscription_update_schema_no_fields(subscription_update_schema):
+    data = {}
+
+    loaded = subscription_update_schema.load(data)
+
+    assert loaded == {}
 
 # ---------------------------
 # REMINDER LOG SCHEMA

@@ -2,6 +2,7 @@ import datetime
 from decimal import Decimal
 
 from api.models import UserModel, SubscriptionModel, ReminderLogModel
+from api.models.enums import BillingCycleEnum
 
 # ---------------------------
 # USER MODEL
@@ -21,13 +22,13 @@ def test_subscription_model_fields():
     subscription = SubscriptionModel(
         name="Netflix",
         price=Decimal("29.99"),
-        billing_cycle="monthly",
+        billing_cycle=BillingCycleEnum.monthly,
         next_payment_date=datetime.date(2024, 7, 15),
         user_id=1
     )
     assert subscription.name == "Netflix"
     assert subscription.price == Decimal("29.99")
-    assert subscription.billing_cycle == "monthly"
+    assert subscription.billing_cycle == BillingCycleEnum.monthly
     assert subscription.next_payment_date == datetime.date(2024, 7, 15)
     assert subscription.user_id == 1
 
