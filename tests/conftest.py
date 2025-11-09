@@ -1,10 +1,12 @@
 import pytest
 import fakeredis
+from types import SimpleNamespace
+from flask_jwt_extended import create_access_token
 
 from api import create_app
 from api.extensions import db
 from api.services import blocklist
-from types import SimpleNamespace
+from api.models import UserModel
 
 @pytest.fixture
 def app():
@@ -47,3 +49,22 @@ def mock_email_queue(monkeypatch, app):
     monkeypatch.setattr(app, "email_queue", fake_queue)
 
     yield fake_queue
+
+@pytest.fixture
+def sample_user(db_session):
+    user = UserModel(username="test", email="test@example.com", password="secret")
+    db_session.add(user)
+    db_session.commit()
+    return user
+
+@pytest.fixture()
+def fresh_jwt(app, sample_user):
+    with app.app_context():
+        access_token = create_access_token(identity=str(sample_user.id), fresh=True)
+        return access_token
+
+@pytest.fixture()
+def jwt(app, sample_user):
+    with app.app_context():
+        access_token = create_access_token(identity=str(sample_user.id))
+        return access_token

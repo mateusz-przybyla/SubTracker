@@ -3,16 +3,9 @@ import datetime
 from decimal import Decimal
 from sqlalchemy.exc import SQLAlchemyError
 
-from api.models import SubscriptionModel, UserModel
+from api.models import SubscriptionModel
 from api.services import subscription as service
 from api.models.enums import BillingCycleEnum
-
-@pytest.fixture
-def sample_user(db_session):
-    user = UserModel(username="mateusz", email="mateusz@example.com", password="secret")
-    db_session.add(user)
-    db_session.commit()
-    return user
 
 @pytest.fixture
 def sample_subscription(db_session, sample_user):
