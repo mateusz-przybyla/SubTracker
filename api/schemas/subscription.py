@@ -29,7 +29,12 @@ class SubscriptionSchema(SubscriptionBaseSchema):
     billing_cycle = fields.Method(
         serialize="get_billing_cycle", 
         deserialize="load_billing_cycle", 
-        required=True
+        required=True,
+        metadata={
+            "type": "string",
+            "enum": [e.value for e in BillingCycleEnum],
+            "description": "Billing cycle type."
+        }
     )
     next_payment_date = fields.Date(required=True, validate=validate_future_date)
 
@@ -38,6 +43,11 @@ class SubscriptionUpdateSchema(SubscriptionBaseSchema):
     price = fields.Decimal(as_string=True, validate=validate.Range(min=Decimal("0.01")))
     billing_cycle = fields.Method(
         serialize="get_billing_cycle", 
-        deserialize="load_billing_cycle"
+        deserialize="load_billing_cycle",
+        metadata={
+            "type": "string",
+            "enum": [e.value for e in BillingCycleEnum],
+            "description": "Billing cycle type."
+        }
     )
     next_payment_date = fields.Date(validate=validate_future_date)
