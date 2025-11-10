@@ -148,6 +148,20 @@ def test_subscription_schema_invalid_price(subscription_schema):
     errors = exc_info.value.messages
     assert "price" in errors
 
+def test_subscription_schema_negative_price(subscription_schema):
+    data = {
+        "name": "Amazon Prime",
+        "price": "-9.99",
+        "billing_cycle": "yearly",
+        "next_payment_date": "2026-01-01"
+    }
+
+    with pytest.raises(ValidationError) as exc_info:
+        subscription_schema.load(data)
+
+    errors = exc_info.value.messages
+    assert "price" in errors
+
 def test_subscription_schema_invalid_date(subscription_schema):
     data = {
         "name": "Hulu",
