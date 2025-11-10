@@ -2,7 +2,6 @@ from marshmallow import Schema, fields, validate, ValidationError
 from decimal import Decimal
 
 from api.models.enums import BillingCycleEnum
-from api.utils.validators import validate_future_date
 
 class SubscriptionBaseSchema(Schema):
     id = fields.Int(dump_only=True)
@@ -36,7 +35,7 @@ class SubscriptionSchema(SubscriptionBaseSchema):
             "description": "Billing cycle type."
         }
     )
-    next_payment_date = fields.Date(required=True, validate=validate_future_date)
+    next_payment_date = fields.Date(required=True)
 
 class SubscriptionUpdateSchema(SubscriptionBaseSchema):
     name = fields.Str(validate=validate.Length(max=120))
@@ -50,4 +49,4 @@ class SubscriptionUpdateSchema(SubscriptionBaseSchema):
             "description": "Billing cycle type."
         }
     )
-    next_payment_date = fields.Date(validate=validate_future_date)
+    next_payment_date = fields.Date()
