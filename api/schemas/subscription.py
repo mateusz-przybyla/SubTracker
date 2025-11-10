@@ -1,5 +1,8 @@
 from marshmallow import Schema, fields, validate, ValidationError
+from decimal import Decimal
+
 from api.models.enums import BillingCycleEnum
+from api.utils.validators import validate_future_date
 
 class SubscriptionBaseSchema(Schema):
     id = fields.Int(dump_only=True)
@@ -19,22 +22,22 @@ class SubscriptionBaseSchema(Schema):
                 f"Invalid billing cycle '{value}'. Must be one of: "
                 f"{', '.join([e.value for e in BillingCycleEnum])}"
             )
-
+        
 class SubscriptionSchema(SubscriptionBaseSchema):
     name = fields.Str(validate=validate.Length(max=120), required=True)
-    price = fields.Decimal(as_string=True, required=True)
+    price = fields.Decimal(as_string=True, required=True, validate=validate.Range(min=Decimal("0.01")))
     billing_cycle = fields.Method(
         serialize="get_billing_cycle", 
         deserialize="load_billing_cycle", 
         required=True
     )
-    next_payment_date = fields.Date(required=True)
+    next_payment_date = fields.Date(required=True, validate=validate_future_date)
 
 class SubscriptionUpdateSchema(SubscriptionBaseSchema):
     name = fields.Str(validate=validate.Length(max=120))
-    price = fields.Decimal(as_string=True)
+    price = fields.Decimal(as_string=True, validate=validate.Range(min=Decimal("0.01")))
     billing_cycle = fields.Method(
         serialize="get_billing_cycle", 
         deserialize="load_billing_cycle"
     )
-    next_payment_date = fields.Date()
+    next_payment_date = fields.Date(validate=validate_future_date)
