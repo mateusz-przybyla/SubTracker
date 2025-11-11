@@ -2,7 +2,7 @@ import os
 
 class Config:
     PROPAGATE_EXCEPTIONS = True
-    API_TITLE = "An advanced Flask REST API template with JWT authentication, Redis token blocklist, background jobs with RQ, Mailgun integration and tests"
+    API_TITLE = "System for tracking subscriptions and payment notifications."
     API_VERSION = "v1"
     OPENAPI_VERSION = "3.0.3"
     OPENAPI_URL_PREFIX = "/"
