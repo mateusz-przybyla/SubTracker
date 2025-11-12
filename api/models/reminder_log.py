@@ -8,7 +8,7 @@ class ReminderLogModel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     subscription_id = db.Column(db.Integer, db.ForeignKey("subscriptions.id"), nullable=False)
     message = db.Column(db.Text, nullable=True)
-    success = db.Column(db.Boolean, default=True)
+    success = db.Column(db.Boolean, default=True, nullable=False)
 
     sent_at = db.Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
