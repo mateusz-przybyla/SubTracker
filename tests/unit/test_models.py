@@ -36,10 +36,21 @@ def test_subscription_model_fields():
 # REMINDER LOG MODEL
 # ---------------------------
 
-def test_reminder_log_model_fields():
+def test_reminder_log_model_required_fields():
     reminder_log = ReminderLogModel(
         subscription_id=1,
         success=True
     )
     assert reminder_log.subscription_id == 1
+    assert reminder_log.success is True
+
+def test_reminder_log_model_all_fields():
+    reminder_log = ReminderLogModel(
+        subscription_id=1,
+        success=True,
+        message="Reminder sent successfully."
+    )
+
+    assert reminder_log.subscription_id == 1
+    assert reminder_log.message == "Reminder sent successfully."
     assert reminder_log.success is True

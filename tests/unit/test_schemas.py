@@ -240,22 +240,24 @@ def test_subscription_update_schema_no_fields(subscription_update_schema):
 
 def test_reminder_log_schema_valid(reminder_log_schema):
     data = {
-        "subscription_id": 1,
-        "message": "Reminder sent",
-        "success": True
+        "success": True,
+        "message": "Reminder sent"
     }
 
     loaded = reminder_log_schema.load(data)
 
-    assert loaded['subscription_id'] == 1
+    assert loaded['message'] == "Reminder sent"
     assert loaded['success'] is True
 
 
-def test_reminder_log_schema_missing_subscription_id(reminder_log_schema):
+def test_reminder_log_schema_missing_success_field(reminder_log_schema):
     data = {
-        "message": "Missing sub id",
-        "success": False
+        # success field is missing
+        "message": "Reminder failed"
     }
 
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError) as exc_info:
         reminder_log_schema.load(data)
+
+    errors = exc_info.value.messages
+    assert "success" in errors

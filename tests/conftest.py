@@ -1,12 +1,15 @@
 import pytest
 import fakeredis
+import datetime
+from decimal import Decimal
 from types import SimpleNamespace
 from flask_jwt_extended import create_access_token
 
 from api import create_app
 from api.extensions import db
 from api.services import blocklist
-from api.models import UserModel
+from api.models import UserModel, SubscriptionModel
+from api.models.subscription import BillingCycleEnum
 
 @pytest.fixture
 def app():
@@ -68,3 +71,16 @@ def jwt(app, sample_user):
     with app.app_context():
         access_token = create_access_token(identity=str(sample_user.id))
         return access_token
+    
+@pytest.fixture
+def sample_subscription(db_session, sample_user):
+    subscription = SubscriptionModel(
+        name="Netflix",
+        price=Decimal("29.99"),
+        billing_cycle=BillingCycleEnum.monthly,
+        next_payment_date=datetime.date(2025, 1, 15),
+        user_id=sample_user.id,
+    )
+    db_session.add(subscription)
+    db_session.commit()
+    return subscription

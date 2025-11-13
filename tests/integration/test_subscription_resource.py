@@ -1,22 +1,8 @@
-import pytest
 import datetime
 from decimal import Decimal
 
 from api.models import SubscriptionModel
 from api.models.enums import BillingCycleEnum
-
-@pytest.fixture
-def sample_subscription(db_session, sample_user):
-    subscription = SubscriptionModel(
-        name="Netflix",
-        price=Decimal("29.99"),
-        billing_cycle=BillingCycleEnum.monthly,
-        next_payment_date=datetime.date(2025, 1, 15),
-        user_id=sample_user.id,
-    )
-    db_session.add(subscription)
-    db_session.commit()
-    return subscription
 
 def test_create_subscription_success(client, db_session, jwt):
     data = {
@@ -112,7 +98,7 @@ def test_update_subscription_success(client, db_session, jwt, sample_subscriptio
     assert response.json['price'] == "35.50"
     assert response.json['billing_cycle'] == "yearly"
 
-    updated_sub = db_session.query(SubscriptionModel).get(sample_subscription.id)
+    updated_sub = db_session.get(SubscriptionModel, sample_subscription.id)
     assert updated_sub.price == Decimal("35.50")
 
 def test_update_subscription_not_found(client, jwt):
@@ -129,7 +115,7 @@ def test_delete_subscription_success(client, db_session, jwt, sample_subscriptio
     assert response.status_code == 200
     assert response.json['message'] == "Subscription deleted."
 
-    deleted_sub = db_session.query(SubscriptionModel).filter_by(id=sample_subscription.id).first()
+    deleted_sub = db_session.get(SubscriptionModel, sample_subscription.id)
     assert deleted_sub is None
 
 def test_delete_subscription_not_found(client, jwt):

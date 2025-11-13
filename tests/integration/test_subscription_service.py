@@ -7,19 +7,6 @@ from api.models import SubscriptionModel
 from api.services import subscription as service
 from api.models.enums import BillingCycleEnum
 
-@pytest.fixture
-def sample_subscription(db_session, sample_user):
-    subscription = SubscriptionModel(
-        name="Netflix",
-        price=Decimal("29.99"),
-        billing_cycle=BillingCycleEnum.monthly,
-        next_payment_date=datetime.date(2025, 1, 15),
-        user_id=sample_user.id,
-    )
-    db_session.add(subscription)
-    db_session.commit()
-    return subscription
-
 def test_create_subscription_success(sample_user):
     data = {
         "name": "Spotify",
@@ -62,20 +49,19 @@ def test_get_subscription_by_id_success(sample_user, sample_subscription):
     result = service.get_subscription_by_id(sample_subscription.id, sample_user.id)
     assert result.name == "Netflix"
 
-
 def test_get_subscription_by_id_not_found(sample_user):
     with pytest.raises(Exception) as e:
         service.get_subscription_by_id(999, sample_user.id)
 
     assert e.value.code == 404
 
-def test_update_subscription_success(sample_user, sample_subscription):
+def test_update_subscription_success(db_session, sample_user, sample_subscription):
     data = {"price": Decimal("39.99")}
     result = service.update_subscription(sample_subscription.id, sample_user.id, data)
 
     assert result.price == Decimal("39.99")
 
-    updated = SubscriptionModel.query.get(sample_subscription.id)
+    updated = db_session.get(SubscriptionModel, sample_subscription.id)
     assert updated.price == Decimal("39.99")
 
 def test_update_subscription_rename_conflict(db_session, sample_user, sample_subscription):
@@ -104,9 +90,11 @@ def test_update_subscription_not_found(sample_user):
 
     assert e.value.code == 404
 
-def test_delete_subscription_success(sample_user, sample_subscription):
+def test_delete_subscription_success(db_session, sample_user, sample_subscription):
     service.delete_subscription(sample_subscription.id, sample_user.id)
-    assert SubscriptionModel.query.count() == 0
+    
+    deleted_sub = db_session.get(SubscriptionModel, sample_subscription.id)
+    assert deleted_sub is None
 
 
 def test_delete_subscription_not_found(sample_user):
