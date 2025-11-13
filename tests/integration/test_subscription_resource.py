@@ -12,7 +12,7 @@ def test_create_subscription_success(client, db_session, jwt):
         "next_payment_date": "2025-07-15"
     }
 
-    response = client.post("/subscription", json=data, headers={"Authorization": f"Bearer {jwt}"})
+    response = client.post("/subscriptions", json=data, headers={"Authorization": f"Bearer {jwt}"})
 
     assert response.status_code == 201
     assert response.json['name'] == "Netflix"
@@ -29,7 +29,7 @@ def test_create_subscription_duplicate_name(client, jwt, sample_subscription):
         "next_payment_date": "2025-03-01"
     }
 
-    response = client.post("/subscription", json=data, headers={"Authorization": f"Bearer {jwt}"})
+    response = client.post("/subscriptions", json=data, headers={"Authorization": f"Bearer {jwt}"})
 
     assert response.status_code == 409
     assert response.json['message'] == "You already have a subscription with this name."
@@ -41,7 +41,7 @@ def test_create_subscription_missing_field(client, jwt):
         "billing_cycle": "monthly",
     }
 
-    response = client.post("/subscription", json=data, headers={"Authorization": f"Bearer {jwt}"})
+    response = client.post("/subscriptions", json=data, headers={"Authorization": f"Bearer {jwt}"})
 
     assert response.status_code == 422
     assert "name" in response.json['errors']['json']
@@ -57,7 +57,7 @@ def test_get_user_subscriptions(client, db_session, jwt, sample_subscription):
     db_session.add(another_subscription)
     db_session.commit()
      
-    response = client.get("/subscription", headers={"Authorization": f"Bearer {jwt}"})
+    response = client.get("/subscriptions", headers={"Authorization": f"Bearer {jwt}"})
 
     assert response.status_code == 200
     assert len(response.json) == 2
@@ -67,32 +67,32 @@ def test_get_user_subscriptions(client, db_session, jwt, sample_subscription):
     assert "Spotify" in names
 
 def test_get_user_subscriptions_empty(client, jwt):
-    response = client.get("/subscription", headers={"Authorization": f"Bearer {jwt}"})
+    response = client.get("/subscriptions", headers={"Authorization": f"Bearer {jwt}"})
 
     assert response.status_code == 200
     assert response.json == []
 
 def test_get_subscription_by_id_success(client, jwt, sample_subscription):
-    response = client.get(f"/subscription/{sample_subscription.id}", headers={"Authorization": f"Bearer {jwt}"})
+    response = client.get(f"/subscriptions/{sample_subscription.id}", headers={"Authorization": f"Bearer {jwt}"})
 
     assert response.status_code == 200
     assert response.json['name'] == "Netflix"
 
 def test_get_subscription_by_id_not_found(client, jwt):
-    response = client.get("/subscription/999", headers={"Authorization": f"Bearer {jwt}"})
+    response = client.get("/subscriptions/999", headers={"Authorization": f"Bearer {jwt}"})
 
     assert response.status_code == 404
     assert response.json['message'] == "Subscription not found."
 
 def test_get_subscription_by_id_unauthorized(client, sample_subscription):
-    response = client.get(f"/subscription/{sample_subscription.id}")
+    response = client.get(f"/subscriptions/{sample_subscription.id}")
 
     assert response.status_code == 401
 
 def test_update_subscription_success(client, db_session, jwt, sample_subscription):
     update_data = {"price": "35.50", "billing_cycle": "yearly"}
 
-    response = client.put(f"/subscription/{sample_subscription.id}", json=update_data, headers={"Authorization": f"Bearer {jwt}"})
+    response = client.put(f"/subscriptions/{sample_subscription.id}", json=update_data, headers={"Authorization": f"Bearer {jwt}"})
 
     assert response.status_code == 200
     assert response.json['price'] == "35.50"
@@ -104,13 +104,13 @@ def test_update_subscription_success(client, db_session, jwt, sample_subscriptio
 def test_update_subscription_not_found(client, jwt):
     update_data = {"price": "35.50"}
 
-    response = client.put("/subscription/999", json=update_data, headers={"Authorization": f"Bearer {jwt}"})
+    response = client.put("/subscriptions/999", json=update_data, headers={"Authorization": f"Bearer {jwt}"})
 
     assert response.status_code == 404
     assert response.json['message'] == "Subscription not found."
 
 def test_delete_subscription_success(client, db_session, jwt, sample_subscription):
-    response = client.delete(f"/subscription/{sample_subscription.id}", headers={"Authorization": f"Bearer {jwt}"})
+    response = client.delete(f"/subscriptions/{sample_subscription.id}", headers={"Authorization": f"Bearer {jwt}"})
 
     assert response.status_code == 200
     assert response.json['message'] == "Subscription deleted."
@@ -119,7 +119,7 @@ def test_delete_subscription_success(client, db_session, jwt, sample_subscriptio
     assert deleted_sub is None
 
 def test_delete_subscription_not_found(client, jwt):
-    response = client.delete("/subscription/999", headers={"Authorization": f"Bearer {jwt}"})
+    response = client.delete("/subscriptions/999", headers={"Authorization": f"Bearer {jwt}"})
 
     assert response.status_code == 404
     assert response.json['message'] == "Subscription not found."

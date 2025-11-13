@@ -8,7 +8,7 @@ from api.docs.common_responses import apply_common_responses, RESOURCE_ERRORS, C
 
 blp = Blueprint("subscription", __name__, description="Operations on subscriptions")
 
-@blp.route("/subscription")
+@blp.route("/subscriptions")
 class SubscriptionsList(MethodView):
     @jwt_required()
     @blp.response(200, SubscriptionSchema(many=True), description="List of user subscriptions.")
@@ -25,7 +25,7 @@ class SubscriptionsList(MethodView):
         user_id = get_jwt_identity()
         return create_subscription(data, user_id)
     
-@blp.route("/subscription/<int:sub_id>")
+@blp.route("/subscriptions/<int:sub_id>")
 class Subscription(MethodView):
     @jwt_required()
     @blp.response(200, SubscriptionSchema, description="Subscription details retrieved successfully.")
