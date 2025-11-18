@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 from flask_smorest import abort
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -59,3 +60,17 @@ def delete_subscription(sub_id, user_id):
     except SQLAlchemyError:
         db.session.rollback()
         abort(500, message="An error occurred while deleting the subscription.")
+
+def get_subscriptions_due_in(days_list):
+    """
+    Retrieve subscriptions with next_payment_date in N days from today.
+    Example: days_list = [1, 7] → returns subscriptions due tomorrow or in 7 days.
+    """
+    today = date.today()
+    dates = [today + timedelta(days=d) for d in days_list]
+
+    return (
+        SubscriptionModel.query
+        .filter(SubscriptionModel.next_payment_date.in_(dates))
+        .all()
+    )

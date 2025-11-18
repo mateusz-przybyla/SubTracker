@@ -1,5 +1,5 @@
 import pytest
-import datetime
+from datetime import timedelta, date
 from decimal import Decimal
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -12,7 +12,7 @@ def test_create_subscription_success(sample_user):
         "name": "Spotify",
         "price": Decimal("19.99"),
         "billing_cycle": BillingCycleEnum.monthly,
-        "next_payment_date": datetime.date(2025, 2, 10),
+        "next_payment_date": date(2025, 2, 10),
     }
 
     result = service.create_subscription(data, sample_user.id)
@@ -27,7 +27,7 @@ def test_create_subscription_duplicate_name(sample_user, sample_subscription):
         "name": "Netflix",
         "price": Decimal("25.00"),
         "billing_cycle": BillingCycleEnum.monthly,
-        "next_payment_date": datetime.date(2025, 3, 1),
+        "next_payment_date": date(2025, 3, 1),
     }
 
     with pytest.raises(Exception) as e:
@@ -69,7 +69,7 @@ def test_update_subscription_rename_conflict(db_session, sample_user, sample_sub
         name="Hulu",
         price=Decimal("14.99"),
         billing_cycle=BillingCycleEnum.monthly,
-        next_payment_date=datetime.date(2025, 4, 1),
+        next_payment_date=date(2025, 4, 1),
         user_id=sample_user.id,
     )
     db_session.add(another_subscription)
@@ -113,7 +113,7 @@ def test_create_subscription_db_error(mocker, sample_user):
         "name": "Disney+",
         "price": Decimal("12.99"),
         "billing_cycle": BillingCycleEnum.monthly,
-        "next_payment_date": datetime.date(2025, 5, 1),
+        "next_payment_date": date(2025, 5, 1),
     }
 
     mock_rollback = mocker.patch("api.services.subscription.db.session.rollback")
@@ -123,3 +123,67 @@ def test_create_subscription_db_error(mocker, sample_user):
     
     mock_rollback.assert_called_once()
     assert e.value.code == 500
+
+def test_get_subscriptions_due_in_filters_by_exact_days_list(db_session, sample_user):
+    today = date.today()
+    subs = [
+        SubscriptionModel(
+            user_id=sample_user.id,
+            name="Due Tomorrow",
+            price=19.99,
+            billing_cycle="monthly",
+            next_payment_date=today + timedelta(days=1),
+            category="music"
+        ),
+        SubscriptionModel(
+            user_id=sample_user.id + 3,  # Different user
+            name="Due Tomorrow",
+            price=12.00,
+            billing_cycle="monthly",
+            next_payment_date=today + timedelta(days=1),
+            category="news"
+        ),
+        SubscriptionModel(
+            user_id=sample_user.id,
+            name="Due in 7 Days",
+            price=9.99,
+            billing_cycle="monthly",
+            next_payment_date=today + timedelta(days=7),
+            category="video"
+        ),
+        SubscriptionModel(
+            user_id=sample_user.id,
+            name="Due in 3 Days",
+            price=5.00,
+            billing_cycle="monthly",
+            next_payment_date=today + timedelta(days=3),
+            category="books"
+        ),
+        SubscriptionModel(
+            user_id=sample_user.id,
+            name="Already Paid",
+            price=12.00,
+            billing_cycle="monthly",
+            next_payment_date=today - timedelta(days=1),
+            category="news"
+        ),
+    ]
+    db_session.add_all(subs)
+    db_session.commit()
+
+    result = service.get_subscriptions_due_in([1, 7])
+    
+    names = {sub.name for sub in result}
+    assert "Due Tomorrow" in names
+    assert "Due in 7 Days" in names
+    assert "Due in 3 Days" not in names
+    assert "Already Paid" not in names
+    assert len(result) == 3
+
+    dates = {sub.next_payment_date for sub in result}
+    assert today + timedelta(days=1) in dates
+    assert today + timedelta(days=7) in dates
+
+def test_get_subscriptions_due_in_returns_empty_when_no_matches():
+    result = service.get_subscriptions_due_in([1, 7])
+    assert result == [] or len(result) == 0
