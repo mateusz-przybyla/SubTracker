@@ -28,3 +28,21 @@ def send_user_registration_email(email, username):
         body=f"Hi {username}, you have successfully signed up for our service!",
         html=render_template("email/registration.html", username=username),
     )
+
+def send_email_reminder(user_email, subscription_name, next_payment_date):
+    """Send an email reminder about an upcoming subscription payment."""
+    formatted_date = next_payment_date.strftime("%Y-%m-%d")
+
+    body = f"Your next payment for {subscription_name} is due on {formatted_date}."
+    html = render_template(
+        "email/reminder.html",
+        subscription_name=subscription_name,
+        next_payment_date=formatted_date,
+    )
+
+    return send_mailgun_message(
+        to=user_email,
+        subject=f"Upcoming payment reminder: {subscription_name}",
+        body=body,
+        html=html,
+    )
