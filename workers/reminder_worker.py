@@ -1,6 +1,6 @@
-from api.workers.mail_worker import send_email_reminder
 from api.services.reminder_log import create_reminder_log
 from api.services.subscription import get_subscriptions_due_in
+from workers.mail_worker import send_email_reminder
 
 def check_upcoming_payments(app=None):
     # Ensure we have an application context

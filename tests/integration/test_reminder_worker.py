@@ -1,7 +1,7 @@
 from datetime import timedelta, date
 
 from api.models import SubscriptionModel, ReminderLogModel
-from api.workers.reminder_worker import check_upcoming_payments
+from workers.reminder_worker import check_upcoming_payments
 
 def test_check_upcoming_payments_sends_reminders(app, db_session, sample_user, mocker):
     today = date.today()
@@ -38,7 +38,7 @@ def test_check_upcoming_payments_sends_reminders(app, db_session, sample_user, m
 
     # MOCK external side effects
     mock_send = mocker.patch(
-        "api.workers.reminder_worker.send_email_reminder",
+        "workers.reminder_worker.send_email_reminder",
         return_value=True
     )
 
@@ -75,7 +75,7 @@ def test_check_upcoming_payments_logs_error_on_send_failure(
 
     # MOCK send_email_reminder to raise Exception
     mocker.patch(
-        "api.workers.reminder_worker.send_email_reminder",
+        "workers.reminder_worker.send_email_reminder",
         side_effect=Exception("Email fail")
     )
 

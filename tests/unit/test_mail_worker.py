@@ -1,10 +1,10 @@
 from datetime import date
 
-from api.workers.mail_worker import send_email_reminder, send_user_registration_email
+from workers.mail_worker import send_email_reminder, send_user_registration_email
 
 def test_send_user_registration_email_calls_mailgun_and_renders_template(mocker):
-    mock_render = mocker.patch("api.workers.mail_worker.render_template", return_value="<html>")
-    mock_mailgun = mocker.patch("api.workers.mail_worker.send_mailgun_message", return_value="OK")
+    mock_render = mocker.patch("workers.mail_worker.render_template", return_value="<html>")
+    mock_mailgun = mocker.patch("workers.mail_worker.send_mailgun_message", return_value="OK")
 
     result = send_user_registration_email("test@example.com", "test_user")
 
@@ -22,8 +22,8 @@ def test_send_user_registration_email_calls_mailgun_and_renders_template(mocker)
     assert result == "OK"
     
 def test_send_email_reminder_calls_mailgun_and_renders_template(mocker):
-    mock_render = mocker.patch("api.workers.mail_worker.render_template", return_value="<html>")
-    mock_mailgun = mocker.patch("api.workers.mail_worker.send_mailgun_message", return_value="OK")
+    mock_render = mocker.patch("workers.mail_worker.render_template", return_value="<html>")
+    mock_mailgun = mocker.patch("workers.mail_worker.send_mailgun_message", return_value="OK")
 
     result = send_email_reminder("test@example.com", "Netflix", date(2025, 1, 1))
 

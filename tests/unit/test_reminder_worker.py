@@ -1,7 +1,7 @@
 import pytest
 from datetime import date
 
-from api.workers.reminder_worker import check_upcoming_payments
+from workers.reminder_worker import check_upcoming_payments
 
 @pytest.fixture
 def worker_mocks(mocker):
@@ -11,9 +11,9 @@ def worker_mocks(mocker):
     - send_email_reminder
     - create_reminder_log
     """
-    mock_get = mocker.patch("api.workers.reminder_worker.get_subscriptions_due_in")
-    mock_send = mocker.patch("api.workers.reminder_worker.send_email_reminder")
-    mock_log = mocker.patch("api.workers.reminder_worker.create_reminder_log")
+    mock_get = mocker.patch("workers.reminder_worker.get_subscriptions_due_in")
+    mock_send = mocker.patch("workers.reminder_worker.send_email_reminder")
+    mock_log = mocker.patch("workers.reminder_worker.create_reminder_log")
 
     return mock_get, mock_send, mock_log
 
