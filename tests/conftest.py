@@ -2,12 +2,10 @@ import pytest
 import fakeredis
 import datetime
 from decimal import Decimal
-from types import SimpleNamespace
 from flask_jwt_extended import create_access_token
 
 from api import create_app
 from api.extensions import db
-from api.services import blocklist
 from api.models import UserModel, SubscriptionModel
 from api.models.subscription import BillingCycleEnum
 
@@ -36,22 +34,10 @@ def db_session(app):
         yield db.session
 
 @pytest.fixture(autouse=True)
-def mock_redis(monkeypatch):
+def mock_redis(mocker):
     fake_redis = fakeredis.FakeRedis()
-    monkeypatch.setattr(blocklist, "redis_client", fake_redis)
-
+    mocker.patch("api.extensions.redis_client", fake_redis)
     yield fake_redis
-
-@pytest.fixture(autouse=True) # autouse=True to apply to all tests
-def mock_email_queue(monkeypatch, app):
-    def fake_enqueue(*args, **kwargs):
-        # simulate successful enqueue
-        return None
-
-    fake_queue = SimpleNamespace(enqueue=fake_enqueue) # create a simple object with enqueue method
-    monkeypatch.setattr(app, "email_queue", fake_queue)
-
-    yield fake_queue
 
 @pytest.fixture
 def sample_user(db_session):
@@ -60,13 +46,13 @@ def sample_user(db_session):
     db_session.commit()
     return user
 
-@pytest.fixture()
+@pytest.fixture
 def fresh_jwt(app, sample_user):
     with app.app_context():
         access_token = create_access_token(identity=str(sample_user.id), fresh=True)
         return access_token
 
-@pytest.fixture()
+@pytest.fixture
 def jwt(app, sample_user):
     with app.app_context():
         access_token = create_access_token(identity=str(sample_user.id))

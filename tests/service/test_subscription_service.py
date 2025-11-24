@@ -184,6 +184,6 @@ def test_get_subscriptions_due_in_filters_by_exact_days_list(db_session, sample_
     assert today + timedelta(days=1) in dates
     assert today + timedelta(days=7) in dates
 
-def test_get_subscriptions_due_in_returns_empty_when_no_matches():
+def test_get_subscriptions_due_in_returns_empty_when_no_matches(db_session, sample_user):
     result = service.get_subscriptions_due_in([1, 7])
     assert result == [] or len(result) == 0

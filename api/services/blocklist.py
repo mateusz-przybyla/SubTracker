@@ -1,7 +1,7 @@
-from api.extensions import redis_client
+import api.extensions as ext
 
 def add_jti_to_blocklist(jti: str, exp: int):
-    redis_client.setex(f"blocklist:{jti}", exp, "true")
+    ext.redis_client.setex(f"blocklist:{jti}", exp, "true")
 
 def is_jti_blocked(jti: str) -> bool:
-    return redis_client.exists(f"blocklist:{jti}") == 1
+    return ext.redis_client.exists(f"blocklist:{jti}") == 1

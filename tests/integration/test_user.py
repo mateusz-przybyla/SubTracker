@@ -2,8 +2,14 @@ import pytest
 from flask_jwt_extended import create_access_token
 from datetime import timedelta
 
-@pytest.fixture()
-def create_user_details(client):
+@pytest.fixture
+def mock_email_queue(mocker, app):
+    mock_queue = mocker.Mock()
+    app.email_queue = mock_queue
+    return mock_queue
+
+@pytest.fixture
+def create_user_details(client, mock_email_queue):
     username = "user"
     email = "test@example.com"
     password = "abc123"
@@ -14,7 +20,7 @@ def create_user_details(client):
 
     return username, email, password
 
-@pytest.fixture()
+@pytest.fixture
 def create_user_jwts(client, create_user_details):
     _, email, password = create_user_details
     response = client.post(
@@ -24,7 +30,7 @@ def create_user_jwts(client, create_user_details):
 
     return response.json['access_token'], response.json['refresh_token']
 
-def test_register_user(client):
+def test_register_user(client, mock_email_queue):
     username = "user"
     email = "test@example.com"
     response = client.post(
@@ -35,8 +41,14 @@ def test_register_user(client):
     assert response.status_code == 201
     assert response.json == {"message": "User created successfully."}
 
+    mock_email_queue.enqueue.assert_called_once()
+    args, kwargs = mock_email_queue.enqueue.call_args
+    assert args[0].__name__ == "send_user_registration_email"
+    assert args[1] == "test@example.com"
+    assert args[2] == "user"
 
-def test_register_user_already_exists(client):
+
+def test_register_user_already_exists(client, mock_email_queue):
     username = "user"
     email = "test@example.com"
     client.post(
@@ -54,7 +66,7 @@ def test_register_user_already_exists(client):
         response.json['message'] == "A user with that email already exists."
     )
 
-def test_register_user_missing_data(client):
+def test_register_user_missing_data(client, mock_email_queue):
     response = client.post(
         "/register",
         json={},
