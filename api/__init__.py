@@ -8,6 +8,7 @@ from api.resources.user import blp as UserBlueprint
 from api.resources.subscription import blp as SubscriptionBlueprint
 from api.resources.reminder_log import blp as ReminderLogBlueprint
 from api import jwt_callbacks
+from api.error_handlers import register_error_handlers
 
 def create_app(test_config=None):
     app = Flask(__name__)
@@ -22,6 +23,8 @@ def create_app(test_config=None):
     migrate.init_app(app, db)
     api.init_app(app)
     jwt.init_app(app)
+
+    register_error_handlers(app)
 
     api.register_blueprint(TestBlueprint)
     api.register_blueprint(UserBlueprint)

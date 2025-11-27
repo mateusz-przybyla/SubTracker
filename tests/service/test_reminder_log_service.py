@@ -1,7 +1,8 @@
 import pytest
 
-from api.services import reminder_log as service
 from api.models import ReminderLogModel
+from api.services import reminder_log as service
+from api.exceptions import ReminderLogNotFoundError, SubscriptionNotFoundError
 
 def test_create_reminder_log_success(sample_subscription):
     data = {
@@ -34,10 +35,10 @@ def test_get_reminder_logs_by_subscription_empty(sample_subscription):
     assert results == []
 
 def test_get_reminder_logs_by_subscription_not_found(sample_user):
-    with pytest.raises(Exception) as e:
+    with pytest.raises(SubscriptionNotFoundError) as exc_info:
         service.get_reminder_logs_by_subscription(999, sample_user.id)
 
-    assert e.value.code == 404
+    assert str(exc_info.value) == "Subscription not found."
 
 def test_get_single_reminder_log(db_session, sample_subscription):
     log = ReminderLogModel(message="Single log", success=True, subscription_id=sample_subscription.id)
@@ -47,11 +48,11 @@ def test_get_single_reminder_log(db_session, sample_subscription):
     result = service.get_reminder_log_by_id(log.id)
     assert result.message == "Single log"
 
-def test_get_single_reminder_log_not_found():
-    with pytest.raises(Exception) as e:
+def test_get_single_reminder_log_not_found(db_session):
+    with pytest.raises(ReminderLogNotFoundError) as exc_info:
         service.get_reminder_log_by_id(999)
 
-    assert e.value.code == 404
+    assert str(exc_info.value) == "Reminder log not found."
 
 def test_delete_reminder_log_success(db_session, sample_subscription):
     log = ReminderLogModel(message="Log to be deleted.", success=True, subscription_id=sample_subscription.id)
@@ -63,8 +64,8 @@ def test_delete_reminder_log_success(db_session, sample_subscription):
     deleted_log = db_session.get(ReminderLogModel, log.id)
     assert deleted_log is None
 
-def test_delete_reminder_log_not_found():
-    with pytest.raises(Exception) as e:
+def test_delete_reminder_log_not_found(db_session):
+    with pytest.raises(ReminderLogNotFoundError) as exc_info:
         service.delete_reminder_log(999)
 
-    assert e.value.code == 404
+    assert str(exc_info.value) == "Reminder log not found."

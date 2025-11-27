@@ -1,10 +1,18 @@
 from sqlalchemy.exc import SQLAlchemyError
-from flask_smorest import abort
+from typing import List
 
-from api.models import ReminderLogModel, SubscriptionModel
 from api.extensions import db
+from api.models import ReminderLogModel
+from api.services import subscription as subscription_service
+from api.exceptions import ReminderLogNotFoundError, ReminderLogDeleteError, ReminderLogCreateError
 
-def create_reminder_log(data, sub_id):
+def check_if_reminder_log_exists(log_id: int) -> ReminderLogModel:
+    reminder_log = ReminderLogModel.query.filter_by(id=log_id).first()
+    if not reminder_log:
+        raise ReminderLogNotFoundError("Reminder log not found.")
+    return reminder_log
+
+def create_reminder_log(data: dict, sub_id: int) -> ReminderLogModel:
     reminder_log = ReminderLogModel(**data, subscription_id=sub_id)
     
     try:
@@ -12,34 +20,23 @@ def create_reminder_log(data, sub_id):
         db.session.commit()
     except SQLAlchemyError:
         db.session.rollback()
-        abort(500, message="An error occurred while creating the reminder log.")
+        raise ReminderLogCreateError("An error occurred while creating the reminder log.")
     
     return reminder_log
 
-def check_if_subscription_exists(sub_id, user_id):
-    subscription = SubscriptionModel.query.filter_by(id=sub_id, user_id=user_id).first()
-    if not subscription:
-        abort(404, message="Subscription not found.")
-
-def get_reminder_logs_by_subscription(sub_id, user_id):
-    check_if_subscription_exists(sub_id, user_id)
+def get_reminder_logs_by_subscription(sub_id: int, user_id: int) -> List[ReminderLogModel]:
+    subscription_service.check_if_subscription_exists(sub_id, user_id)
     return ReminderLogModel.query.filter_by(subscription_id=sub_id).all()
 
-def get_reminder_log_by_id(log_id):
-    reminder_log = ReminderLogModel.query.filter_by(id=log_id).first()
-    if not reminder_log:
-        abort(404, message="Reminder log not found.")
-    
-    return reminder_log
+def get_reminder_log_by_id(log_id: int) -> ReminderLogModel:
+    return check_if_reminder_log_exists(log_id)
 
-def delete_reminder_log(log_id):
-    reminder_log = ReminderLogModel.query.filter_by(id=log_id).first()
-    if not reminder_log:
-        abort(404, message="Reminder log not found.")
+def delete_reminder_log(log_id: int) -> None:
+    reminder_log = check_if_reminder_log_exists(log_id)
     
     try:
         db.session.delete(reminder_log)
         db.session.commit()
     except SQLAlchemyError:
         db.session.rollback()
-        abort(500, message="An error occurred while deleting the reminder log.")
+        raise ReminderLogDeleteError("An error occurred while deleting the reminder log.")

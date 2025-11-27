@@ -4,8 +4,13 @@ from decimal import Decimal
 from sqlalchemy.exc import SQLAlchemyError
 
 from api.models import SubscriptionModel
-from api.services import subscription as service
 from api.models.enums import BillingCycleEnum
+from api.services import subscription as service
+from api.exceptions import (
+    SubscriptionExistError,
+    SubscriptionNotFoundError,
+    SubscriptionCreateError
+)
 
 def test_create_subscription_success(sample_user):
     data = {
@@ -30,16 +35,15 @@ def test_create_subscription_duplicate_name(sample_user, sample_subscription):
         "next_payment_date": date(2025, 3, 1),
     }
 
-    with pytest.raises(Exception) as e:
+    with pytest.raises(SubscriptionExistError) as exc_info:
         service.create_subscription(data, sample_user.id)
 
-    assert e.value.code == 409
+    assert str(exc_info.value) == "You already have a subscription with this name."
 
 def test_get_user_subscriptions(sample_user, sample_subscription):
     results = service.get_user_subscriptions(sample_user.id)
     assert len(results) == 1
     assert results[0].name == "Netflix"
-
 
 def test_get_user_subscriptions_empty(sample_user):
     results = service.get_user_subscriptions(sample_user.id)
@@ -50,10 +54,10 @@ def test_get_subscription_by_id_success(sample_user, sample_subscription):
     assert result.name == "Netflix"
 
 def test_get_subscription_by_id_not_found(sample_user):
-    with pytest.raises(Exception) as e:
+    with pytest.raises(SubscriptionNotFoundError) as exc_info:
         service.get_subscription_by_id(999, sample_user.id)
 
-    assert e.value.code == 404
+    assert str(exc_info.value) == "Subscription not found."
 
 def test_update_subscription_success(db_session, sample_user, sample_subscription):
     data = {"price": Decimal("39.99")}
@@ -77,18 +81,18 @@ def test_update_subscription_rename_conflict(db_session, sample_user, sample_sub
 
     data = {"name": "Hulu"}
 
-    with pytest.raises(Exception) as e:
+    with pytest.raises(SubscriptionExistError) as exc_info:
         service.update_subscription(sample_subscription.id, sample_user.id, data)
 
-    assert e.value.code == 409
+    assert str(exc_info.value) == "You already have a subscription with this name."
 
 def test_update_subscription_not_found(sample_user):
     data = {"price": Decimal("49.99")}
 
-    with pytest.raises(Exception) as e:
+    with pytest.raises(SubscriptionNotFoundError) as exc_info:
         service.update_subscription(999, sample_user.id, data)
 
-    assert e.value.code == 404
+    assert str(exc_info.value) == "Subscription not found."
 
 def test_delete_subscription_success(db_session, sample_user, sample_subscription):
     service.delete_subscription(sample_subscription.id, sample_user.id)
@@ -96,12 +100,11 @@ def test_delete_subscription_success(db_session, sample_user, sample_subscriptio
     deleted_sub = db_session.get(SubscriptionModel, sample_subscription.id)
     assert deleted_sub is None
 
-
 def test_delete_subscription_not_found(sample_user):
-    with pytest.raises(Exception) as e:
+    with pytest.raises(SubscriptionNotFoundError) as exc_info:
         service.delete_subscription(999, sample_user.id)
 
-    assert e.value.code == 404
+    assert str(exc_info.value) == "Subscription not found."
 
 def test_create_subscription_db_error(mocker, sample_user):
     mocker.patch(
@@ -118,11 +121,11 @@ def test_create_subscription_db_error(mocker, sample_user):
 
     mock_rollback = mocker.patch("api.services.subscription.db.session.rollback")
 
-    with pytest.raises(Exception) as e:
+    with pytest.raises(SubscriptionCreateError) as exc_info:
         service.create_subscription(data, sample_user.id)
     
     mock_rollback.assert_called_once()
-    assert e.value.code == 500
+    assert str(exc_info.value) == "An error occurred while creating the subscription."
 
 def test_get_subscriptions_due_in_filters_by_exact_days_list(db_session, sample_user):
     today = date.today()
