@@ -19,7 +19,7 @@ class UserRegister(MethodView):
     @blp.arguments(UserRegisterSchema)
     @blp.response(201, description="User created successfully.")
     @blp.alt_response(409, description="A user with that email already exists.")
-    def post(self, user_data):
+    def post(self, user_data: dict) -> dict:
         if UserModel.query.filter(UserModel.email == user_data['email']).first():
             abort(409, message="A user with that email already exists.")
 
@@ -51,7 +51,7 @@ class UserLogin(MethodView):
     @blp.arguments(UserSchema)
     @blp.response(200, description="User logged in successfully.")
     @blp.alt_response(401, description="Invalid credentials.")
-    def post(self, user_data):
+    def post(self, user_data: dict) -> dict[str, str]:
         user = UserModel.query.filter(UserModel.email == user_data['email']).first()
 
         if user and sha256.verify(user_data['password'], user.password):
@@ -65,18 +65,17 @@ class UserLogin(MethodView):
 class UserLogout(MethodView):
     @jwt_required(refresh=True)
     @blp.response(200, description="User logged out successfully.")
-    def post(self):
+    def post(self) -> dict[str, str]:
         jti = get_jwt()['jti']
         exp = get_jwt()['exp'] - datetime.now(timezone.utc).timestamp()
         add_jti_to_blocklist(jti, int(exp))
-        # print(is_jti_blocked(jti))
         return {"message": "Successfully logged out."}
     
 @blp.route("/refresh")
 class TokenRefresh(MethodView):
     @jwt_required(refresh=True)
     @blp.response(200, description="Access token refreshed successfully.")
-    def post(self):
+    def post(self) -> dict[str, str]:
         current_user = get_jwt_identity()
         new_token = create_access_token(identity=current_user, fresh=False)
         return {"access_token": new_token}
@@ -86,13 +85,13 @@ class TokenRefresh(MethodView):
 class User(MethodView):
     @blp.response(200, UserSchema, description="User details retrieved successfully.")
     @blp.alt_response(404, description="User not found.")
-    def get(self, user_id):
+    def get(self, user_id: int) -> UserModel:
         user = UserModel.query.get_or_404(user_id)
         return user
     
     @blp.response(200, description="User deleted successfully.")
     @blp.alt_response(404, description="User not found.")
-    def delete(self, user_id):
+    def delete(self, user_id: int) -> dict[str, str]:
         user = UserModel.query.get_or_404(user_id)
 
         try:

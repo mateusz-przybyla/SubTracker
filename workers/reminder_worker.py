@@ -1,20 +1,20 @@
+from flask import Flask
+
 from api.services.reminder_log import create_reminder_log
 from api.services.subscription import get_subscriptions_due_in
 from workers.mail_worker import send_email_reminder
 
-def check_upcoming_payments(app=None):
+def check_upcoming_payments(app: Flask | None = None) -> None:
+    """Worker that checks for upcoming subscription payments and sends reminder emails."""
+
     # Ensure we have an application context
     if app is None:
         from api import create_app
         app = create_app()
 
     with app.app_context():
-
         subs = get_subscriptions_due_in([1, 7])
         
-        # For development purposes, print the number of found subscriptions
-        # print(f"Found {len(subs)} upcoming payment(s).")
-
         if not subs:
             print("No upcoming payments found.")
             return
