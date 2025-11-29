@@ -2,7 +2,7 @@ from flask import Flask
 from dotenv import load_dotenv
 
 from api.config import Config
-from api.extensions import api, jwt, db, migrate, email_queue
+from api.extensions import api, jwt, db, migrate, email_queue, reminder_queue
 from api.resources.test import blp as TestBlueprint
 from api.resources.user import blp as UserBlueprint
 from api.resources.subscription import blp as SubscriptionBlueprint
@@ -32,5 +32,6 @@ def create_app(test_config=None):
     api.register_blueprint(ReminderLogBlueprint)
 
     app.email_queue = email_queue
+    app.reminder_queue = reminder_queue
 
     return app

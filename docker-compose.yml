@@ -12,6 +12,7 @@ services:
         condition: service_started
     env_file:
       - ./.env
+    restart: always
   db:
     image: mysql:8.0
     environment:
@@ -28,11 +29,13 @@ services:
       interval: 20s
       timeout: 10s
       retries: 5
+    restart: always
   redis:
     image: redis:alpine
     ports:
       - "6379:6379"
-  rq_worker:
+    restart: always
+  rq_worker_emails:
     build: .
     depends_on:
       redis:
@@ -42,5 +45,39 @@ services:
     volumes:
       - .:/app
     command: rq worker -u ${REDIS_URL} emails
+    restart: always
+  rq_worker_reminders:
+    build: .
+    depends_on:
+      redis:
+        condition: service_started
+    env_file:
+      - ./.env
+    volumes:
+      - .:/app
+    command: rq worker -u ${REDIS_URL} reminders
+    restart: always
+  rq_scheduler:
+    build: .
+    depends_on:
+      redis:
+        condition: service_started
+    env_file:
+      - ./.env
+    volumes:
+      - .:/app
+    command: rqscheduler -u ${REDIS_URL}
+    restart: always
+  register_jobs:
+    build: .
+    depends_on:
+      redis:
+        condition: service_started
+    env_file:
+      - ./.env
+    volumes:
+      - .:/app
+    command: python -m workers.register_jobs
+    restart: no
 volumes:
   mysql_data:

@@ -9,5 +9,6 @@ passlib
 redis
 requests
 rq
+rq-scheduler
 pymysql
 cryptography
