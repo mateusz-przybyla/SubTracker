@@ -70,14 +70,75 @@ def delete_subscription(sub_id: int, user_id: int) -> None:
 
 def get_subscriptions_due_in(days_list: list[int]) -> List[SubscriptionModel]:
     """
-    Retrieve subscriptions with next_payment_date in N days from today.
-    Example: days_list = [1, 7] → returns subscriptions due tomorrow or in 7 days.
+    Retrieve subscriptions with next_payment_date exactly N days from today.
+
+    Args:
+        days_list (List[int]): List of day offsets from today.
+            Example: [1, 7] → returns subscriptions due tomorrow or in 7 days.
+
+    Returns:
+        List[SubscriptionModel]: Subscriptions matching the given offsets.
     """
     today = date.today()
-    dates = [today + timedelta(days=d) for d in days_list]
+    target_dates = [today + timedelta(days=d) for d in days_list]
 
     return (
         SubscriptionModel.query
-        .filter(SubscriptionModel.next_payment_date.in_(dates))
+        .filter(SubscriptionModel.next_payment_date.in_(target_dates))
+        .all()
+    )
+
+def get_user_upcoming_subscriptions(
+    user_id: int,
+    days_list: List[int] | None = None
+) -> List[SubscriptionModel]:
+    """
+    Retrieve subscriptions for a specific user that have a next_payment_date
+    exactly N days from today.
+
+    Args:
+        user_id (int): ID of the user whose subscriptions should be retrieved.
+        days_list (List[int] | None): List of day offsets from today to check.
+            Example: [1, 7] → returns subscriptions due tomorrow or in 7 days.
+            Defaults to [1, 7].
+
+    Returns:
+        List[SubscriptionModel]: List of upcoming subscriptions for the user.
+    """
+    if days_list is None:
+        days_list = [1, 7]
+
+    today = date.today()
+    target_dates = [today + timedelta(days=d) for d in days_list]
+
+    return (
+        SubscriptionModel.query
+        .filter(SubscriptionModel.user_id == user_id)
+        .filter(SubscriptionModel.next_payment_date.in_(target_dates))
+        .all()
+    )
+
+def get_user_upcoming_within(user_id: int, days: int = 7) -> List[SubscriptionModel]:
+    """
+    Retrieve all subscriptions for a specific user that have a next_payment_date
+    within the given number of days from today.
+
+    Args:
+        user_id (int): ID of the user whose subscriptions should be retrieved.
+        days (int, optional): Number of days ahead to include in the search.
+            Defaults to 7. Example: days=7 → returns subscriptions due today
+            through the next 7 days.
+
+    Returns:
+        List[SubscriptionModel]: List of SubscriptionModel objects representing
+        upcoming payments for the user within the specified time window.
+    """
+    today = date.today()
+    end_date = today + timedelta(days=days)
+
+    return (
+        SubscriptionModel.query
+        .filter(SubscriptionModel.user_id == user_id)
+        .filter(SubscriptionModel.next_payment_date.between(today, end_date))
         .all()
     )

@@ -190,3 +190,97 @@ def test_get_subscriptions_due_in_filters_by_exact_days_list(db_session, sample_
 def test_get_subscriptions_due_in_returns_empty_when_no_matches(db_session, sample_user):
     result = service.get_subscriptions_due_in([1, 7])
     assert result == [] or len(result) == 0
+
+def test_get_user_upcoming_within_returns_only_user_subs(db_session, sample_user):
+    today = date.today()
+    subs = [
+        SubscriptionModel(
+            user_id=sample_user.id,
+            name="Due Today",
+            price=10.00,
+            billing_cycle="monthly",
+            next_payment_date=today,
+            category="music"
+        ),
+        SubscriptionModel(
+            user_id=sample_user.id,
+            name="Due in 5 Days",
+            price=15.00,
+            billing_cycle="monthly",
+            next_payment_date=today + timedelta(days=5),
+            category="video"
+        ),
+        SubscriptionModel(
+            user_id=sample_user.id,
+            name="Due in 10 Days (outside window)",
+            price=20.00,
+            billing_cycle="monthly",
+            next_payment_date=today + timedelta(days=10),
+            category="books"
+        ),
+        SubscriptionModel(
+            user_id=sample_user.id + 1,  # Different user
+            name="Other User Due Tomorrow",
+            price=12.00,
+            billing_cycle="monthly",
+            next_payment_date=today + timedelta(days=1),
+            category="news"
+        ),
+        SubscriptionModel(
+            user_id=sample_user.id,
+            name="Already Paid",
+            price=8.00,
+            billing_cycle="monthly",
+            next_payment_date=today - timedelta(days=1),
+            category="games"
+        ),
+    ]
+    db_session.add_all(subs)
+    db_session.commit()
+
+    result = service.get_user_upcoming_within(sample_user.id, days=7)
+
+    names = {sub.name for sub in result}
+    assert "Due Today" in names
+    assert "Due in 5 Days" in names
+    assert "Due in 10 Days (outside window)" not in names
+    assert "Other User Due Tomorrow" not in names
+    assert "Already Paid" not in names
+    assert len(result) == 2
+
+def test_get_user_upcoming_within_returns_empty_when_no_matches(db_session, sample_user):
+    today = date.today()
+    subs = [
+        SubscriptionModel(
+            user_id=sample_user.id,
+            name="Due in 20 Days",
+            price=25.00,
+            billing_cycle="monthly",
+            next_payment_date=today + timedelta(days=20),
+            category="fitness"
+        )
+    ]
+    db_session.add_all(subs)
+    db_session.commit()
+
+    result = service.get_user_upcoming_within(sample_user.id, days=7)
+    assert result == [] or len(result) == 0
+
+def test_get_user_upcoming_within_includes_boundary_day(db_session, sample_user):
+    today = date.today()
+    subs = [
+        SubscriptionModel(
+            user_id=sample_user.id,
+            name="Due Exactly in 7 Days",
+            price=30.00,
+            billing_cycle="monthly",
+            next_payment_date=today + timedelta(days=7),
+            category="education"
+        )
+    ]
+    db_session.add_all(subs)
+    db_session.commit()
+
+    result = service.get_user_upcoming_within(sample_user.id, days=7)
+    assert len(result) == 1
+    assert result[0].name == "Due Exactly in 7 Days"
