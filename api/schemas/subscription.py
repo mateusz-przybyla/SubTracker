@@ -6,7 +6,6 @@ from api.models.enums import BillingCycleEnum
 class SubscriptionBaseSchema(Schema):
     id = fields.Int(dump_only=True)
     user_id = fields.Int(dump_only=True)
-    category = fields.Str(validate=validate.Length(max=80))
     created_at = fields.DateTime(format="%Y-%m-%d %H:%M:%S", dump_only=True)
     updated_at = fields.DateTime(format="%Y-%m-%d %H:%M:%S", dump_only=True)
 
@@ -36,6 +35,7 @@ class SubscriptionSchema(SubscriptionBaseSchema):
         }
     )
     next_payment_date = fields.Date(required=True)
+    category = fields.Str(validate=validate.Length(max=80), required=True)
 
 class SubscriptionUpdateSchema(SubscriptionBaseSchema):
     name = fields.Str(validate=validate.Length(max=120))
@@ -50,3 +50,4 @@ class SubscriptionUpdateSchema(SubscriptionBaseSchema):
         }
     )
     next_payment_date = fields.Date()
+    category = fields.Str(validate=validate.Length(max=80))

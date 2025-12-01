@@ -18,6 +18,7 @@ def test_create_subscription_success(sample_user):
         "price": Decimal("19.99"),
         "billing_cycle": BillingCycleEnum.monthly,
         "next_payment_date": date(2025, 2, 10),
+        "category": "music"
     }
 
     result = service.create_subscription(data, sample_user.id)
@@ -33,6 +34,7 @@ def test_create_subscription_duplicate_name(sample_user, sample_subscription):
         "price": Decimal("25.00"),
         "billing_cycle": BillingCycleEnum.monthly,
         "next_payment_date": date(2025, 3, 1),
+        "category": "entertainment"
     }
 
     with pytest.raises(SubscriptionExistError) as exc_info:
@@ -74,6 +76,7 @@ def test_update_subscription_rename_conflict(db_session, sample_user, sample_sub
         price=Decimal("14.99"),
         billing_cycle=BillingCycleEnum.monthly,
         next_payment_date=date(2025, 4, 1),
+        category="entertainment",
         user_id=sample_user.id,
     )
     db_session.add(another_subscription)
@@ -117,6 +120,7 @@ def test_create_subscription_db_error(mocker, sample_user):
         "price": Decimal("12.99"),
         "billing_cycle": BillingCycleEnum.monthly,
         "next_payment_date": date(2025, 5, 1),
+        "category": "entertainment"
     }
 
     mock_rollback = mocker.patch("api.services.subscription.db.session.rollback")

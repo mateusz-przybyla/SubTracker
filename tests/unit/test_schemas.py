@@ -114,7 +114,7 @@ def test_register_schema_username_too_short(register_schema):
     assert "Length must be between 3 and 80." in errors["username"][0]
 
 # ---------------------------
-# SUBSCRIPTION SCHEMA
+# Tests for Subscription Schema
 # ---------------------------
 
 def test_subscription_schema_valid(subscription_schema):
@@ -123,7 +123,7 @@ def test_subscription_schema_valid(subscription_schema):
         "price": "29.99",
         "billing_cycle": "monthly",
         "next_payment_date": "2025-11-01",
-        "category": "Entertainment"
+        "category": "entertainment"
     }
 
     loaded = subscription_schema.load(data)
@@ -132,14 +132,15 @@ def test_subscription_schema_valid(subscription_schema):
     assert Decimal(loaded['price']) == Decimal("29.99")
     assert loaded['billing_cycle'] == BillingCycleEnum.monthly
     assert isinstance(loaded['next_payment_date'], date)
-    assert loaded['category'] == "Entertainment"
+    assert loaded['category'] == "entertainment"
 
 def test_subscription_schema_invalid_price(subscription_schema):
     data = {
         "name": "Spotify",
         "price": "invalid-price",
         "billing_cycle": "monthly",
-        "next_payment_date": "2025-12-01"
+        "next_payment_date": "2025-12-01",
+        "category": "music"
     }
 
     with pytest.raises(ValidationError) as exc_info:
@@ -153,7 +154,8 @@ def test_subscription_schema_negative_price(subscription_schema):
         "name": "Amazon Prime",
         "price": "-9.99",
         "billing_cycle": "yearly",
-        "next_payment_date": "2026-01-01"
+        "next_payment_date": "2026-01-01",
+        "category": "entertainment"
     }
 
     with pytest.raises(ValidationError) as exc_info:
@@ -167,7 +169,8 @@ def test_subscription_schema_invalid_date(subscription_schema):
         "name": "Hulu",
         "price": "19.99",
         "billing_cycle": "monthly",
-        "next_payment_date": "2025-13-01"  # Invalid month
+        "next_payment_date": "2025-13-01",  # Invalid month
+        "category": "entertainment"
     }
 
     with pytest.raises(ValidationError) as exc_info:
@@ -195,7 +198,8 @@ def test_subscription_schema_invalid_billing_cycle(subscription_schema):
         "name": "Disney+",
         "price": "15.99",
         "billing_cycle": "invalid_cycle",  # Invalid billing cycle
-        "next_payment_date": "2025-10-01"
+        "next_payment_date": "2025-10-01",
+        "category": "entertainment"
     }
 
     with pytest.raises(ValidationError) as exc_info:
@@ -205,7 +209,7 @@ def test_subscription_schema_invalid_billing_cycle(subscription_schema):
     assert "billing_cycle" in errors
 
 # ---------------------------
-# SubscriptionUpdateSchema (update)
+# Tests for SubscriptionUpdate Schema
 # ---------------------------
 
 def test_subscription_update_schema_partial_update(subscription_update_schema):
@@ -235,7 +239,7 @@ def test_subscription_update_schema_no_fields(subscription_update_schema):
     assert loaded == {}
 
 # ---------------------------
-# REMINDER LOG SCHEMA
+# Tests for ReminderLog Schema
 # ---------------------------
 
 def test_reminder_log_schema_valid(reminder_log_schema):

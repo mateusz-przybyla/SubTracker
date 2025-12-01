@@ -65,6 +65,7 @@ def sample_subscription(db_session, sample_user):
         price=Decimal("29.99"),
         billing_cycle=BillingCycleEnum.monthly,
         next_payment_date=datetime.date(2025, 1, 15),
+        category="entertainment",
         user_id=sample_user.id,
     )
     db_session.add(subscription)

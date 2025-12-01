@@ -9,7 +9,8 @@ def test_create_subscription_success(client, db_session, jwt):
         "name": "Netflix",
         "price": "29.99",
         "billing_cycle": "monthly",
-        "next_payment_date": "2025-07-15"
+        "next_payment_date": "2025-07-15",
+        "category": "entertainment"
     }
 
     response = client.post("/subscriptions", json=data, headers={"Authorization": f"Bearer {jwt}"})
@@ -26,7 +27,8 @@ def test_create_subscription_duplicate_name(client, jwt, sample_subscription):
         "name": "Netflix",
         "price": "25.00",
         "billing_cycle": "monthly",
-        "next_payment_date": "2025-03-01"
+        "next_payment_date": "2025-03-01",
+        "category": "entertainment"
     }
 
     response = client.post("/subscriptions", json=data, headers={"Authorization": f"Bearer {jwt}"})
@@ -52,6 +54,7 @@ def test_get_user_subscriptions(client, db_session, jwt, sample_subscription):
         price=Decimal("19.99"),
         billing_cycle=BillingCycleEnum.monthly,
         next_payment_date=datetime.date(2025, 7, 10),
+        category="music",
         user_id=sample_subscription.id
     )
     db_session.add(another_subscription)
