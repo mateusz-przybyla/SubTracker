@@ -3,7 +3,7 @@ from flask_smorest import Blueprint
 from flask_jwt_extended import jwt_required
 from typing import Any
 
-from api.schemas import ReminderSendTestSchema
+from api.schemas import ReminderSendTestSchema, StatsSendTestSchema
 from workers import mail_worker
 
 blp = Blueprint("test", __name__, description="Developer endpoints (authentication tests, email tests, etc.)")
@@ -46,7 +46,7 @@ class TestFreshAuthEndpoint(MethodView):
 @blp.route("/reminders/send-test")
 class ReminderSendTest(MethodView):
     @blp.arguments(ReminderSendTestSchema)
-    @blp.response(200, description="Test email sent successfully")
+    @blp.response(200, description="Test reminder email sent successfully.")
     def post(self, args: dict[str, Any]) -> dict[str, Any]:
         """
         Developer-only endpoint to send a test reminder email.
@@ -56,6 +56,28 @@ class ReminderSendTest(MethodView):
             user_email=args['email'],
             subscription_name=args['subscription_name'],
             next_payment_date=args['next_payment_date'],
+        )
+
+        return {"status": "ok", "mailgun_status": response.status_code}
+    
+@blp.route("/stats/send-test")
+class StatsSendTest(MethodView):
+    @blp.arguments(StatsSendTestSchema)
+    @blp.response(200, description="Test stats summary email sent successfully.")
+    def post(self, args: dict[str, Any]) -> dict[str, Any]:
+        """
+        Developer-only endpoint to send a test stats summary email.
+        Useful for verifying monthly summary email templates and Mailgun integration.
+        """
+        summary = {
+            "month": args['month'],
+            "total_spent": args['total_spent'],
+            "by_category": args['by_category'],
+        }
+
+        response = mail_worker.send_monthly_summary_email(
+            user_email=args['email'],
+            summary=summary,
         )
 
         return {"status": "ok", "mailgun_status": response.status_code}

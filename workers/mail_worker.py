@@ -51,3 +51,20 @@ def send_email_reminder(user_email: str, subscription_name: str, next_payment_da
         body=body,
         html=html,
     )
+
+def send_monthly_summary_email(user_email: str, summary: dict[str, Any]) -> requests.Response:
+    """Send a monthly subscription spending summary email to the user."""
+    body = f"Your spending summary for {summary['month']} is {summary['total_spent']}."
+    html = render_template(
+        "email/monthly_summary.html",
+        month=summary['month'],
+        total_spent=summary['total_spent'],
+        by_category=summary['by_category'],
+    )
+
+    return send_mailgun_message(
+        to=user_email,
+        subject=f"Your subscription summary for {summary['month']}",
+        body=body,
+        html=html,
+    )

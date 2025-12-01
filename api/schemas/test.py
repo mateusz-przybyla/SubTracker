@@ -13,3 +13,14 @@ class ReminderSendTestSchema(Schema):
         required=False,
         metadata={"description": "Date in YYYY-MM-DD format"}
     )
+
+class StatsSendTestSchema(Schema):
+    email = fields.Email(required=True, metadata={"description": "Target email address"})
+    month = fields.String(required=True, metadata={"description": "Month in YYYY-MM format"})
+    total_spent = fields.Float(required=True, metadata={"description": "Total amount spent"})
+    by_category = fields.Dict(
+        keys=fields.String(),
+        values=fields.Float(),
+        required=True,
+        metadata={"description": "Breakdown of spending by category"}
+    )
