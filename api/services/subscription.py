@@ -142,3 +142,53 @@ def get_user_upcoming_within(user_id: int, days: int = 7) -> List[SubscriptionMo
         .filter(SubscriptionModel.next_payment_date.between(today, end_date))
         .all()
     )
+
+def get_monthly_summary(user_id: int, month: str | None = None) -> dict[str, object]:
+    """
+    Calculate monthly spending summary for a given user.
+
+    Args:
+        user_id (int): ID of the user whose subscriptions are aggregated.
+        month (str, optional): Month in YYYY-MM format. Defaults to current month.
+
+    Returns:
+        dict[str, object]: Summary with keys 'month', 'total_spent', 'by_category'.
+    """
+    if month is None:
+        month = date.today().strftime("%Y-%m")
+
+    year, month_num = map(int, month.split("-"))
+    start_date = date(year, month_num, 1)
+    if month_num == 12:
+        end_date = date(year + 1, 1, 1)
+    else:
+        end_date = date(year, month_num + 1, 1)
+
+    subs = (
+        SubscriptionModel.query
+        .filter(
+            SubscriptionModel.user_id == user_id,
+            SubscriptionModel.next_payment_date >= start_date,
+            SubscriptionModel.next_payment_date < end_date,
+        )
+        .all()
+    )
+
+    total_spent = 0.0
+    by_category: dict[str, float] = {}
+
+    for sub in subs:
+        try:
+            amount = float(sub.price)
+        except ValueError:
+            continue  # skip if the price is not a number
+
+        total_spent += amount
+        category = sub.category or "uncategorized"
+        by_category[category] = by_category.get(category, 0.0) + amount
+
+    return {
+        "month": month,
+        "total_spent": round(total_spent, 2),
+        "by_category": by_category,
+    }

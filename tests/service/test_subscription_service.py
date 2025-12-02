@@ -288,3 +288,93 @@ def test_get_user_upcoming_within_includes_boundary_day(db_session, sample_user)
     result = service.get_user_upcoming_within(sample_user.id, days=7)
     assert len(result) == 1
     assert result[0].name == "Due Exactly in 7 Days"
+
+def test_get_monthly_summary_returns_correct_totals(db_session, sample_user):
+    # Arrange: subs in October
+    sub1 = SubscriptionModel(
+        user_id=sample_user.id,
+        name="Netflix",
+        price="29.99",
+        billing_cycle="monthly",
+        next_payment_date=date(2025, 10, 5),
+        category="entertainment"
+    )
+    sub2 = SubscriptionModel(
+        user_id=sample_user.id,
+        name="Spotify",
+        price="22.47",
+        billing_cycle="monthly",
+        next_payment_date=date(2025, 10, 10),
+        category="music"
+    )
+    sub3 = SubscriptionModel(
+        user_id=sample_user.id,
+        name="Notion",
+        price="19.99",
+        billing_cycle="monthly",
+        next_payment_date=date(2025, 10, 15),
+        category="productivity"
+    )
+    sub4 = SubscriptionModel(
+        user_id=sample_user.id,
+        name="Disney+",
+        price="29.99",
+        billing_cycle="monthly",
+        next_payment_date=date(2025, 10, 5),
+        category="entertainment" # entertainment x2
+    )
+    db_session.add_all([sub1, sub2, sub3, sub4])
+    db_session.commit()
+
+    # Act
+    summary = service.get_monthly_summary(sample_user.id, "2025-10")
+
+    # Assert
+    assert summary['month'] == "2025-10"
+    assert summary['total_spent'] == pytest.approx(102.44)
+    assert summary['by_category'] == {
+        "entertainment": 59.98,
+        "music": 22.47,
+        "productivity": 19.99,
+    }
+
+def test_get_monthly_summary_skips_other_months(db_session, sample_user):
+    # Arrange: sub in November
+    sub = SubscriptionModel(
+        user_id=sample_user.id,
+        name="Disney+",
+        price="10.00",
+        billing_cycle="monthly",
+        next_payment_date=date(2025, 11, 1),
+        category="entertainment"
+    )
+    db_session.add(sub)
+    db_session.commit()
+
+    # Act
+    summary = service.get_monthly_summary(sample_user.id, "2025-10")
+
+    # Assert
+    assert summary['month'] == "2025-10"
+    assert summary['total_spent'] == 0.0
+    assert summary['by_category'] == {}
+
+# legacy safety net
+def test_get_monthly_summary_handles_missing_category(db_session, sample_user):
+    # Arrange: uncategorized sub
+    sub = SubscriptionModel(
+        user_id=sample_user.id,
+        name="VPN",
+        price="5.00",
+        billing_cycle="monthly",
+        next_payment_date=date(2025, 10, 20),
+        category=None
+    )
+    db_session.add(sub)
+    db_session.commit()
+
+    # Act
+    summary = service.get_monthly_summary(sample_user.id, "2025-10")
+
+    # Assert: fallback on "uncategorized"
+    assert summary['by_category'] == {"uncategorized": 5.00}
