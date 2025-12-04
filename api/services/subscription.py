@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 from sqlalchemy.exc import SQLAlchemyError
 from typing import List
+from decimal import Decimal
 
 from api.extensions import db
 from api.models import SubscriptionModel
@@ -174,21 +175,21 @@ def get_monthly_summary(user_id: int, month: str | None = None) -> dict[str, obj
         .all()
     )
 
-    total_spent = 0.0
+    total_spent = Decimal("0.00")
     by_category: dict[str, float] = {}
 
     for sub in subs:
         try:
-            amount = float(sub.price)
+            amount = Decimal(sub.price)
         except ValueError:
             continue  # skip if the price is not a number
 
         total_spent += amount
         category = sub.category or "uncategorized"
-        by_category[category] = by_category.get(category, 0.0) + amount
+        by_category[category] = by_category.get(category, Decimal("0.00")) + amount
 
     return {
         "month": month,
-        "total_spent": round(total_spent, 2),
-        "by_category": by_category,
+        "total_spent": float(round(total_spent, 2)),
+        "by_category": {k: float(round(v, 2)) for k, v in by_category.items()},
     }
