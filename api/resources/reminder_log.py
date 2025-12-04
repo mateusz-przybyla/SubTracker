@@ -7,7 +7,7 @@ from api.schemas import ReminderLogSchema
 from api.models import ReminderLogModel
 from api.services import reminder_log as reminder_log_service
 
-blp = Blueprint("reminder_log", __name__, description="Operations on reminder logs")
+blp = Blueprint("reminder_log", __name__, description="Endpoints for tracking and retrieving reminder delivery logs")
 
 @blp.route("/subscriptions/<int:sub_id>/reminder_logs")
 class ReminderLogList(MethodView):

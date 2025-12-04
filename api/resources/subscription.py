@@ -8,7 +8,7 @@ from api.models import SubscriptionModel
 from api.services import subscription as subscription_service
 from api.docs.common_responses import apply_common_responses, RESOURCE_ERRORS, CREATION_ERRORS, LISTING_ERRORS
 
-blp = Blueprint("subscription", __name__, description="Operations on subscriptions")
+blp = Blueprint("subscription", __name__, description="Endpoints for managing user subscriptions")
 
 @blp.route("/subscriptions")
 class SubscriptionsList(MethodView):

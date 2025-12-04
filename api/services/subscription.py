@@ -119,16 +119,16 @@ def get_user_upcoming_subscriptions(
         .all()
     )
 
-def get_user_upcoming_within(user_id: int, days: int = 7) -> List[SubscriptionModel]:
+def get_user_upcoming_within(user_id: int, days: int) -> List[SubscriptionModel]:
     """
     Retrieve all subscriptions for a specific user that have a next_payment_date
     within the given number of days from today.
 
     Args:
         user_id (int): ID of the user whose subscriptions should be retrieved.
-        days (int, optional): Number of days ahead to include in the search.
-            Defaults to 7. Example: days=7 → returns subscriptions due today
-            through the next 7 days.
+        days (int): Number of days ahead to include in the search.
+            Example: days=7 → returns subscriptions due today through the 
+            next 7 days.
 
     Returns:
         List[SubscriptionModel]: List of SubscriptionModel objects representing

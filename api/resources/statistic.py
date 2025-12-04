@@ -5,7 +5,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from api.schemas import StatsSummarySchema, StatsSummaryQueryArgsSchema
 from api.services import subscription as subscription_service
 
-blp = Blueprint("statistic", __name__, description="Operations on subscription statistics")
+blp = Blueprint("statistic", __name__, description="Endpoints for generating monthly spending summaries and subscription statistics")
 
 @blp.route("/stats/summary")
 class StatsSummary(MethodView):

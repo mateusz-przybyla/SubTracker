@@ -12,7 +12,7 @@ from api.schemas import UserSchema, UserRegisterSchema
 from api.services.blocklist import add_jti_to_blocklist, is_jti_blocked
 from workers.mail_worker import send_user_registration_email
 
-blp = Blueprint("user", __name__, description="Operations on users")
+blp = Blueprint("user", __name__, description="Endpoints for user registration, authentication and account management")
 
 @blp.route("/register")
 class UserRegister(MethodView):
