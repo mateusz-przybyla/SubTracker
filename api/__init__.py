@@ -2,7 +2,7 @@ from flask import Flask
 from dotenv import load_dotenv
 
 from api.config import Config
-from api.extensions import api, jwt, db, migrate, email_queue, reminder_queue
+from api.extensions import api, jwt, db, migrate, email_queue, reminder_queue, report_queue
 from api.resources import ALL_BLUEPRINTS
 from api import jwt_callbacks
 from api.error_handlers import register_error_handlers
@@ -28,5 +28,6 @@ def create_app(test_config=None):
 
     app.email_queue = email_queue
     app.reminder_queue = reminder_queue
+    app.report_queue = report_queue
 
     return app

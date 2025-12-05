@@ -1,45 +1,59 @@
 from datetime import datetime, timezone, timedelta
 from rq_scheduler import Scheduler
 
-from api.extensions import redis_client, reminder_queue
+from api.extensions import redis_client, reminder_queue, report_queue
 from workers.reminder_worker import check_upcoming_payments
+from workers.report_worker import generate_monthly_report
 
-scheduler = Scheduler(
-    queue=reminder_queue,
-    connection=redis_client
-)
+reminder_scheduler = Scheduler(queue=reminder_queue, connection=redis_client)
+report_scheduler = Scheduler(queue=report_queue, connection=redis_client)
 
-def register_jobs() -> None:
-    """
-    Register the scheduled reminder job for upcoming subscription payments.
-
-    Ensures that the job is only registered once. If already present,
-    skips registration. The job runs `check_upcoming_payments` periodically.
-    """
-    print("Registering scheduled reminder jobs...")
-
-    existing = [job for job in scheduler.get_jobs() if job.id == "subscription_payment_reminder_job"]
-    if existing:
-        print("Reminder already scheduled.")
-        # Development: list all jobs for debugging
-        # debug_list_jobs()
+def register_reminder_job() -> None:
+    """Register the daily reminder job for upcoming subscription payments."""
+    if any(job.id == "subscription_payment_reminder_job" for job in reminder_scheduler.get_jobs()):
+        print("Reminder job already scheduled.")
         return
 
-    scheduler.schedule(
+    reminder_scheduler.schedule(
         scheduled_time=datetime.now(timezone.utc) + timedelta(seconds=10),
         func=check_upcoming_payments,
-        interval=86400,  # 24h in seconds
+        interval=86400, # 24h in seconds
         repeat=None,
         queue_name=reminder_queue.name,
         id="subscription_payment_reminder_job"
     )
+    print("Reminder job scheduled.")
 
-    print("Job scheduled.")
-    # Development: list all jobs for debugging
-    # debug_list_jobs()
+def register_report_job() -> None:
+    """Register the monthly report job for spending summaries."""
+    if any(job.id == "monthly_report_job" for job in report_scheduler.get_jobs()):
+        print("Monthly report job already scheduled.")
+        return
 
-def debug_list_jobs() -> None:
-    """Print all jobs currently registered in the scheduler for debugging purposes."""
+    now = datetime.now(timezone.utc)
+    if now.month == 12:
+        first_of_next_month = datetime(year=now.year + 1, month=1, day=1, tzinfo=timezone.utc)
+    else:
+        first_of_next_month = datetime(year=now.year, month=now.month + 1, day=1, tzinfo=timezone.utc)
+
+    report_scheduler.schedule(
+        scheduled_time=first_of_next_month,
+        func=generate_monthly_report,
+        interval=2592000,  # ~30 days in seconds
+        repeat=None,
+        queue_name=report_queue.name,
+        id="monthly_report_job"
+    )
+    print("Monthly report job scheduled.")
+
+def register_jobs() -> None:
+    """Register all scheduled jobs."""
+    print("Registering scheduled jobs...")
+    register_reminder_job()
+    register_report_job()
+
+def debug_list_jobs(scheduler) -> None:
+    """Print jobs currently registered in the scheduler for debugging purposes."""
     jobs = list(scheduler.get_jobs())
 
     print(f"Found {len(jobs)} job(s):")

@@ -57,6 +57,17 @@ services:
       - .:/app
     command: rq worker -u ${REDIS_URL} reminders
     restart: always
+  rq_worker_reports:
+    build: .
+    depends_on:
+      redis:
+        condition: service_started
+    env_file:
+      - ./.env
+    volumes:
+      - .:/app
+    command: rq worker -u ${REDIS_URL} reports
+    restart: always
   rq_scheduler:
     build: .
     depends_on:

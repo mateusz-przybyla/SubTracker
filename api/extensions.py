@@ -15,3 +15,4 @@ redis_client = redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379"))
 
 email_queue = Queue("emails", connection=redis_client)
 reminder_queue = Queue("reminders", connection=redis_client)
+report_queue = Queue("reports", connection=redis_client)
