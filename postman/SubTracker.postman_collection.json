@@ -7,7 +7,7 @@
 	},
 	"item": [
 		{
-			"name": "Auth",
+			"name": "User",
 			"item": [
 				{
 					"name": "/register - create user",
@@ -62,25 +62,25 @@
 					"response": []
 				},
 				{
-					"name": "/user/<id> - get user (dev)",
+					"name": "/users/<id> - get user (dev)",
 					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{url}}/user/1",
+							"raw": "{{url}}/users/2",
 							"host": [
 								"{{url}}"
 							],
 							"path": [
-								"user",
-								"1"
+								"users",
+								"2"
 							]
 						}
 					},
 					"response": []
 				},
 				{
-					"name": "/user/<id> - delete user (dev)",
+					"name": "/users/<id> - delete user (dev)",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -95,13 +95,13 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "{{url}}/user/1",
+							"raw": "{{url}}/users/2",
 							"host": [
 								"{{url}}"
 							],
 							"path": [
-								"user",
-								"1"
+								"users",
+								"2"
 							]
 						}
 					},
@@ -160,9 +160,14 @@
 						}
 					},
 					"response": []
-				},
+				}
+			]
+		},
+		{
+			"name": "Test (dev)",
+			"item": [
 				{
-					"name": "/guest - test guest endpoint (dev)",
+					"name": "/guest - test guest endpoint",
 					"request": {
 						"method": "GET",
 						"header": [],
@@ -179,7 +184,34 @@
 					"response": []
 				},
 				{
-					"name": "/protected - test protected endpoint (dev)",
+					"name": "/fresh-protected - test fresh protected endpoint",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/fresh-protected",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"fresh-protected"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/protected - test protected endpoint",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -206,7 +238,102 @@
 					"response": []
 				},
 				{
-					"name": "/fresh-protected - test fresh protected endpoint (dev)",
+					"name": "/reminders/send-test - send sub reminder",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"email\": \"mateusz.przybyla.programista@gmail.com\",\r\n    \"subscription_name\": \"Netflix\",\r\n    \"next_payment_date\": \"2025-12-07\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/reminders/send-test",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"reminders",
+								"send-test"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/stats/send-test - send monthly report",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"email\": \"mateusz.przybyla.programista@gmail.com\",\r\n  \"month\": \"2025-10\",\r\n  \"total_spent\": 72.45,\r\n  \"by_category\": {\r\n    \"entertainment\": 29.99,\r\n    \"productivity\": 19.99,\r\n    \"music\": 22.47\r\n  }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/stats/send-test",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"stats",
+								"send-test"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Subscription",
+			"item": [
+				{
+					"name": "/subscriptions - add sub",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"Spotify14\",\r\n    \"price\": \"25.99\",\r\n    \"billing_cycle\": \"monthly\",\r\n    \"next_payment_date\": \"2025-12-07\",\r\n    \"category\": \"entertainment\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/subscriptions",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"subscriptions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/subscriptions - get subs",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -221,12 +348,273 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{url}}/fresh-protected",
+							"raw": "{{url}}/subscriptions",
 							"host": [
 								"{{url}}"
 							],
 							"path": [
-								"fresh-protected"
+								"subscriptions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/subscriptions - delete sub",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/subscriptions/1",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"subscriptions",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/subscriptions/<id> - get sub",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/subscriptions/28",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"subscriptions",
+								"28"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/subscriptions/<id> - update sub",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"Netflix\",\r\n    \"price\": \"26.99\",\r\n    \"billing_cycle\": \"weekly\",\r\n    \"next_payment_date\": \"2025-10-31\",\r\n    \"category\": \"2345\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/subscriptions/2",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"subscriptions",
+								"2"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "ReminderLog",
+			"item": [
+				{
+					"name": "/reminder_logs/<id> - get reminder log",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/reminder_logs/5",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"reminder_logs",
+								"5"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/reminder_logs/<id> - delete reminder log",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/reminder_logs/1",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"reminder_logs",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "subscriptions/<id>/reminder_logs - list of logs for a sub",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/subscriptions/17/reminder_logs",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"subscriptions",
+								"17",
+								"reminder_logs"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Reminder",
+			"item": [
+				{
+					"name": "/reminders/upcoming - list of payments",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/reminders/upcoming?days=3",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"reminders",
+								"upcoming"
+							],
+							"query": [
+								{
+									"key": "days",
+									"value": "3"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Statistic",
+			"item": [
+				{
+					"name": "/stats/summary - monthly subs spending summary",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/stats/summary?month=2025-15",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"stats",
+								"summary"
+							],
+							"query": [
+								{
+									"key": "month",
+									"value": "2025-15"
+								}
 							]
 						}
 					},
