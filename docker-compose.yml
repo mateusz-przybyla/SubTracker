@@ -44,7 +44,7 @@ services:
       - ./.env
     volumes:
       - .:/app
-    command: rq worker -u ${REDIS_URL} emails
+    command: python -m workers.email_worker
     restart: always
   rq_worker_reminders:
     build: .
@@ -55,7 +55,7 @@ services:
       - ./.env
     volumes:
       - .:/app
-    command: rq worker -u ${REDIS_URL} reminders
+    command: python -m workers.reminder_worker
     restart: always
   rq_worker_reports:
     build: .
@@ -66,7 +66,7 @@ services:
       - ./.env
     volumes:
       - .:/app
-    command: rq worker -u ${REDIS_URL} reports
+    command: python -m workers.report_worker
     restart: always
   rq_scheduler:
     build: .
@@ -88,7 +88,7 @@ services:
       - ./.env
     volumes:
       - .:/app
-    command: python -m workers.register_jobs
+    command: python -m workers.scheduler
     restart: no
 volumes:
   mysql_data:

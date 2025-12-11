@@ -10,9 +10,9 @@ Includes JWT authentication, MySQL, Redis, background jobs with RQ, scheduled ta
 - [Features](#features)
 - [Requirements](#requirements)
 - [Installation](#installation)
-    - [Local setup](#local-setup)
     - [Docker setup](#docker-setup)
 - [Database Schema](#database-schema)
+- [Architecture Overview](#architecture-overview)
 - [Endpoints](#endpoints)
     - [Auth](#auth)
     - [User management](#user-management)
@@ -21,8 +21,6 @@ Includes JWT authentication, MySQL, Redis, background jobs with RQ, scheduled ta
     - [Reminder logs](#reminder-logs)
     - [Stats](#stats)
 - [Validation and Errors](#validation-and-errors)
-- [Background Jobs and Emails](#background-jobs-and-emails)
-- [Architecture Overview](#architecture-overview)
 - [Testing](#testing)
 - [Postman Collection](#postman-collection)
 
@@ -30,19 +28,18 @@ Includes JWT authentication, MySQL, Redis, background jobs with RQ, scheduled ta
 
 ## Features
 
-- JWT authentication (access + refresh tokens)
+- JWT authentication: access + refresh tokens
 - Token revocation stored in **Redis**
-- MySQL database with **SQLAlchemy** and **Flask-Migrate**
-- Background job queue using **RQ** and **Redis**
-- Scheduled jobs with **RQ Scheduler**:
-    - Daily reminders for upcoming subscription payments
-    - Monthly spending summary reports
-- Email sending via **Mailgun API**
-- API documentation with **Swagger UI** (via Flask-Smorest) available at [`/swagger-ui`](http://localhost:5000/swagger-ui)
-- Database migrations with **Flask-Migrate / Alembic**
-- Environment variable support via `.env` / `.flaskenv`
-- Docker and docker-compose setup
-- Unit, service, worker and integration tests with **pytest**
+- **MySQL** + SQLAlchemy ORM + Alembic migrations
+- **Redis** + **RQ** for async background tasks
+- **RQ Scheduler** for recurring jobs:
+    - Daily: `check_upcoming_payments`
+    - Monthly: `send_monthly_user_reports`
+- Email delivery via **Mailgun API**
+- API documentation via **Flask-Smorest / Swagger UI** at `/swagger-ui`
+- Environment configuration via `.env` and `.flaskenv`
+- Docker Compose including API, DB, Redis, workers & scheduler
+- Unit, service and integration tests with **pytest**
 - Test coverage: **92%**
 - Postman collection with all endpoints and variables
 
@@ -52,20 +49,10 @@ Includes JWT authentication, MySQL, Redis, background jobs with RQ, scheduled ta
 
 - Python 3.13
 - Flask
-- Flask-Smorest
-- SQLAlchemy
-- Flask-SQLAlchemy
-- Flask-Migrate
-- Flask-JWT-Extended
-- Passlib
-- python-dotenv
-- Redis
-- requests
-- rq
-- rq-scheduler
-- pymysql
-- cryptography
-- Docker & Docker Compose
+- MySQL + SQLAlchemy
+- Redis + RQ
+- Mailgun
+- Docker
 
 See [requirements.txt](requirements.txt) and [requirements-dev.txt](requirements-dev.txt).
 
@@ -138,6 +125,91 @@ docker compose down
 
 ---
 
+## Architecture Overview
+
+SubTracker is built with a clear separation of concerns between the web API, database layer, background workers, queues and scheduler. The system follows a modular, event-driven approach using Redis + RQ for async tasks and recurring jobs.
+
+### Flask REST API Layer
+
+- Endpoints for authentication, subscriptions, reminder logs and monthly statistics.
+- Marshmallow schemas (Flask-Smorest) for validated request/response payloads.
+- JWT authentication with access + refresh tokens.
+- Redis-backed token revocation.
+- Consumes service layer functions (subscription service, reminder service).
+
+### Database Layer (MySQL + SQLAlchemy)
+
+Stores:
+- Users
+- Subscriptions
+- Reminder logs
+
+Managed via SQLAlchemy ORM and Alembic migrations.\
+The reminder system records every reminder attempt in `ReminderLogModel` together with success/failure state, error message and timestamp.
+
+### Redis Layer
+
+Redis serves two independent roles:
+
+- Backend for RQ queues.
+- Storage for the JWT blocklist (revoked tokens).
+
+### Asynchronous Processing (RQ Queues + Workers)
+
+The system uses three isolated queues, each processed by a dedicated worker container:
+
+#### Queues
+
+- `email_queue` → outgoing email jobs
+- `reminder_queue` → daily reminders
+- `report_queue` → monthly reports
+
+#### Workers
+
+- **Email Worker** (`rq_worker_emails`)
+Sends transactional emails (welcome, reminders, monthly summaries).
+
+- **Reminder Worker** (`rq_worker_reminders`)
+Runs `check_upcoming_payments`, sends upcoming payment emails and creates reminder logs.
+
+- **Report Worker** (`rq_worker_reports`)
+Generates and emails monthly summaries for all users.
+
+### Scheduler (Recurring Jobs)
+
+Recurring tasks are managed using **RQ Scheduler**, running in its own container:
+
+- `rq_scheduler` – scheduler process
+- `register_jobs` – one-shot container that registers recurring jobs on startup
+
+Registered jobs:
+
+- `check_upcoming_payments`
+    - Runs: **every 24 hours**
+    - Processed by: **Reminder Worker**
+    - Purpose: Sends upcoming payment reminders and creates reminder logs.
+- `send_monthly_user_reports`
+    - Runs: **every 30 days**
+    - Processed by: **Report Worker**
+    - Purpose: Generates and sends monthly spending summaries to all users.
+
+### Task Layer
+
+Tasks encapsulate business logic used by workers:
+
+- **Email Task** (`send_user_registration_email` / `send_email_reminder` / `send_monthly_report_email`)
+Sends emails via the Mailgun API.
+
+- **Reminder Task** (`check_upcoming_payments`)
+Finds subscriptions due soon (1 or 7 days), queues appropriate emails, writes reminder logs.
+
+- **Report Task** (`send_monthly_user_reports`)
+Aggregates user spending per month and sends summary emails.\
+
+Reminder and Report Tasks executed by workers run inside the Flask application context (`with app.app_context()`), allowing them to access the database, models, configuration and service layer.
+
+---
+
 ## Endpoints
 
 ### Auth
@@ -145,10 +217,6 @@ docker compose down
 - **POST** `/login` – login and get tokens
 - **POST** `/refresh` – refresh access token
 - **POST** `/logout` – revoke refresh token
-
-### User management
-- **GET** `/users/<id>` – fetch user by id
-- **DELETE** `/users/<id>` – delete user
 - **GET** `/users/me` – fetch current user profile
 
 ### Subscriptions
@@ -173,8 +241,12 @@ docker compose down
 - **GET** `/guest` – open endpoint, no authentication required
 - **GET** `/protected` – requires valid JWT token
 - **GET** `/fresh-protected` – requires fresh JWT token
-- **POST** `/reminders/send-test` – send a test reminder email (developer only)
-- **POST** `/stats/send-test` – send a test stats summary email (developer only)
+
+- **GET** `/users/<id>` – fetch user by id
+- **DELETE** `/users/<id>` – delete user by id
+
+- **POST** `/reminders/send-test` – send a test reminder email
+- **POST** `/stats/send-test` – send a test stats summary email
 
 ---
 
@@ -184,49 +256,6 @@ docker compose down
 - Validation errors → `422 Unprocessable Entity`
 - Resource errors → `404 Not Found`, `409 Conflict`
 - Database errors → `500 Internal Server Error`
-
----
-
-## Background Jobs and Emails
-
-- **Reminder worker** (`reminder_worker.py`)
-Runs daily, checks upcoming subscription payments, sends reminder emails and logs results in `reminder_logs`.
-- **Report worker** (`report_worker.py`)
-Runs monthly, generates spending summaries for all users, sends summary emails and logs results via `app.logger`.
-- **Mail worker** (`mail_worker.py`)
-Handles queued email jobs (welcome emails, reminders, reports).
-
-Jobs are scheduled via `scheduler.py` using **RQ Scheduler**.
-Both reminder and report workers rely on the Flask **application context** (`app.app_context()`), ensuring they can access database models, configuration and services defined in the API layer.
-
----
-
-## Architecture Overview
-
-The API is designed with a clear separation of concerns between the web layer, background workers, queues and persistence.
-
-## Components
-
-- **Flask REST API**
-    - Endpoints for authentication, user management, subscriptions, reminders, reminder logs and stats.
-    - Uses **Flask-Smorest** for schema validation and auto-generated Swagger docs.
-    - JWT authentication with Redis-backed token revocation.
-- **Database (MySQL)**
-    - Stores users, subscriptions and reminder logs.
-    - Managed via **SQLAlchemy ORM** and **Alembic migrations**.
-- **Redis**
-    - Broker for background jobs.
-    - Stores revoked JWT tokens.
-- **RQ Queues & Workers**
-    - `rq_worker_emails` → handles email sending jobs.
-    - `rq_worker_reminders` → daily subscription payment reminders.
-    - `rq_worker_reports` → monthly spending summary reports.
-- **Scheduler**
-    - `rq_scheduler` → runs RQ Scheduler process, responsible for recurring jobs.
-    - `register_jobs` → one‑shot container that registers jobs (daily reminders, monthly reports) into the scheduler.
-- **Docker & Compose**
-    - Containers for API, MySQL, Redis, workers, scheduler and job registration.
-    - Simplifies local development and deployment.
 
 ---
 
@@ -251,10 +280,9 @@ docker-compose exec web pytest -v --cov=api tests/
 ```
 
 Test structure:
-- `tests/unit/` → models, schemas, helpers
+- `tests/unit/` → models, schemas, blocklist, helpers
 - `tests/service/` → service layer
-- `tests/workers/` → background workers
-- `tests/integration/` → auth/subs/stats/reminder flow
+- `tests/integration/` → tasks, resources
 
 Coverage: **92%**
 

@@ -3,9 +3,9 @@ from flask_jwt_extended import create_access_token
 from datetime import timedelta
 
 @pytest.fixture
-def mock_email_queue(mocker, app):
+def mock_email_queue(mocker):
     mock_queue = mocker.Mock()
-    app.email_queue = mock_queue
+    mocker.patch("api.resources.user.email_queue", mock_queue)
     return mock_queue
 
 @pytest.fixture

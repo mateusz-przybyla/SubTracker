@@ -4,7 +4,7 @@ from flask_jwt_extended import jwt_required
 from typing import Any
 
 from api.schemas import ReminderSendTestSchema, StatsSendTestSchema
-from workers import mail_worker
+from api.tasks.email_tasks import send_email_reminder, send_monthly_summary_email
 
 blp = Blueprint("test", __name__, description="Developer endpoints (authentication tests, email tests, etc.)")
 
@@ -52,12 +52,11 @@ class ReminderSendTest(MethodView):
         Developer-only endpoint to send a test reminder email.
         Useful for verifying email templates and Mailgun integration.
         """
-        response = mail_worker.send_email_reminder(
+        response = send_email_reminder(
             user_email=args['email'],
             subscription_name=args['subscription_name'],
             next_payment_date=args['next_payment_date'],
         )
-
         return {"status": "ok", "mailgun_status": response.status_code}
     
 @blp.route("/stats/send-test")
@@ -74,10 +73,5 @@ class StatsSendTest(MethodView):
             "total_spent": args['total_spent'],
             "by_category": args['by_category'],
         }
-
-        response = mail_worker.send_monthly_summary_email(
-            user_email=args['email'],
-            summary=summary,
-        )
-
+        response = send_monthly_summary_email(user_email=args['email'], summary=summary)
         return {"status": "ok", "mailgun_status": response.status_code}

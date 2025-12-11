@@ -1,7 +1,7 @@
 from datetime import timedelta, date
 
 from api.models import SubscriptionModel, ReminderLogModel
-from workers.reminder_worker import check_upcoming_payments
+from api.tasks.reminder_tasks import check_upcoming_payments
 
 def test_check_upcoming_payments_sends_reminders(app, db_session, sample_user, mocker):
     today = date.today()
@@ -36,13 +36,12 @@ def test_check_upcoming_payments_sends_reminders(app, db_session, sample_user, m
     db_session.add_all([sub1, sub2, sub3])
     db_session.commit()
 
-    # MOCK external side effects
+    # Mock external side effects
     mock_send = mocker.patch(
-        "workers.reminder_worker.send_email_reminder",
+        "api.tasks.reminder_tasks.send_email_reminder",
         return_value=True
     )
 
-    # Run worker
     check_upcoming_payments(app=app)
 
     # assert mail was sent 2×
@@ -73,13 +72,11 @@ def test_check_upcoming_payments_logs_error_on_send_failure(
     db_session.add(sub)
     db_session.commit()
 
-    # MOCK send_email_reminder to raise Exception
     mocker.patch(
-        "workers.reminder_worker.send_email_reminder",
+        "api.tasks.reminder_tasks.send_email_reminder",
         side_effect=Exception("Email fail")
     )
 
-    # Run worker
     check_upcoming_payments(app=app)
 
     logs = ReminderLogModel.query.all()
