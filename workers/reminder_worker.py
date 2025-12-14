@@ -1,10 +1,7 @@
-import os
-import redis
-from rq import Worker, Queue
+from rq import Worker
 
-redis_client = redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379"))
-reminder_queue = Queue("reminders", connection=redis_client)
+from api.infra.queues import get_reminder_queue
 
 if __name__ == "__main__":
-    worker = Worker([reminder_queue])
+    worker = Worker([get_reminder_queue()])
     worker.work()

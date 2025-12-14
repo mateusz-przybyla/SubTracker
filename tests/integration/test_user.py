@@ -5,7 +5,7 @@ from datetime import timedelta
 @pytest.fixture
 def mock_email_queue(mocker):
     mock_queue = mocker.Mock()
-    mocker.patch("api.resources.user.email_queue", mock_queue)
+    mocker.patch("api.resources.user.get_email_queue", return_value=mock_queue)
     return mock_queue
 
 @pytest.fixture
@@ -42,11 +42,10 @@ def test_register_user(client, mock_email_queue):
     assert response.json == {"message": "User created successfully."}
 
     mock_email_queue.enqueue.assert_called_once()
-    args, kwargs = mock_email_queue.enqueue.call_args
+    args, _ = mock_email_queue.enqueue.call_args
     assert args[0].__name__ == "send_user_registration_email"
     assert args[1] == "test@example.com"
     assert args[2] == "user"
-
 
 def test_register_user_already_exists(client, mock_email_queue):
     username = "user"

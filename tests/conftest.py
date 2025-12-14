@@ -36,7 +36,7 @@ def db_session(app):
 @pytest.fixture(autouse=True)
 def mock_redis(mocker):
     fake_redis = fakeredis.FakeRedis()
-    mocker.patch("api.extensions.redis_client", fake_redis)
+    mocker.patch("api.services.blocklist.get_redis", return_value=fake_redis)
     yield fake_redis
 
 @pytest.fixture

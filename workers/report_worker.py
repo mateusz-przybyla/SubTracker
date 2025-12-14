@@ -1,10 +1,7 @@
-import os
-import redis
-from rq import Worker, Queue
+from rq import Worker
 
-redis_client = redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379"))
-report_queue = Queue("reports", connection=redis_client)
+from api.infra.queues import get_report_queue
 
 if __name__ == "__main__":
-    worker = Worker([report_queue])
+    worker = Worker([get_report_queue()])
     worker.work()

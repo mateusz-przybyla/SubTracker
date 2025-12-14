@@ -1,10 +1,7 @@
-import os
-import redis
-from rq import Worker, Queue
+from rq import Worker
 
-redis_client = redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379"))
-email_queue = Queue("emails", connection=redis_client)
+from api.infra.queues import get_email_queue
 
 if __name__ == "__main__":
-    worker = Worker([email_queue])
+    worker = Worker([get_email_queue()])
     worker.work()

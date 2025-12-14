@@ -6,7 +6,8 @@ from flask_jwt_extended import create_access_token, create_refresh_token, jwt_re
 from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime, timezone
 
-from api.extensions import db, email_queue
+from api.extensions import db
+from api.infra.queues import get_email_queue
 from api.models import UserModel
 from api.schemas import UserSchema, UserRegisterSchema
 from api.services.blocklist import add_jti_to_blocklist
@@ -36,7 +37,7 @@ class UserRegister(MethodView):
             abort(500, message="An error occurred while creating the user.")
 
         try:
-            email_queue.enqueue(send_user_registration_email, user.email, user.username)
+            get_email_queue().enqueue(send_user_registration_email, user.email, user.username)
         except Exception as e:
             current_app.logger.error(f"Failed to enqueue email task | error={e}")
 

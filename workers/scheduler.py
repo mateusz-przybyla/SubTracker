@@ -1,13 +1,11 @@
-import os
-import redis
 from datetime import datetime, timezone, timedelta
 from rq_scheduler import Scheduler
 
 from api.tasks import reminder_tasks, report_tasks
+from api.infra.redis import get_redis
+from api.infra.queues import get_reminder_queue, get_report_queue
 
-redis_client = redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379"))
-
-scheduler = Scheduler(connection=redis_client)
+scheduler = Scheduler(connection=get_redis())
 
 def register_reminder_job() -> None:
     """Register the daily reminder job for upcoming subscription payments."""
@@ -22,7 +20,7 @@ def register_reminder_job() -> None:
         interval=86400, # 24h in seconds
         repeat=None,
         id="subscription_payment_reminder_job",
-        queue_name="reminders"
+        queue_name=get_reminder_queue().name
     )
     print("Reminder job scheduled.")
 
@@ -40,12 +38,12 @@ def register_report_job() -> None:
         first_of_next_month = datetime(year=now.year, month=now.month + 1, day=1, tzinfo=timezone.utc)
 
     scheduler.schedule(
-        scheduled_time=datetime.now(timezone.utc) + timedelta(seconds=10),
+        scheduled_time=first_of_next_month,
         func=report_tasks.generate_monthly_report,
         interval=2592000,  # ~30 days in seconds
         repeat=None,
         id="monthly_report_job",
-        queue_name="reports"
+        queue_name=get_report_queue().name
     )
     print("Monthly report job scheduled.")
 
