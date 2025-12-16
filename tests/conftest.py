@@ -34,7 +34,11 @@ def db_session(app):
         yield db.session
 
 @pytest.fixture(autouse=True)
-def mock_redis(mocker):
+def mock_auth_redis(mocker):
+    """
+    Global fake Redis for JWT blocklist.
+    Prevents real Redis connections during tests.
+    """
     fake_redis = fakeredis.FakeRedis()
     mocker.patch("api.services.blocklist.get_redis", return_value=fake_redis)
     yield fake_redis

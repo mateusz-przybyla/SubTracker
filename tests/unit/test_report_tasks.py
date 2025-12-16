@@ -1,79 +1,133 @@
 import pytest
+from rq import Retry
 
-from api.tasks.report_tasks import generate_monthly_report
+from api.tasks import report_tasks
 
 @pytest.fixture
-def mocked_dependencies(mocker):
+def mocked_dependencies_1(mocker):
     """
-    Provides patched versions of task dependencies:
-    - get_monthly_summary
-    - send_monthly_summary_email
-    - get_all_users
+    Provides patched versions of task dependencies for generate_monthly_report.
     """
-    mock_get = mocker.patch("api.services.subscription.get_monthly_summary")
-    mock_send = mocker.patch("api.tasks.email_tasks.send_monthly_summary_email")
     mock_users = mocker.patch("api.services.user.get_all_users")
-
-    return mock_get, mock_send, mock_users
-
-def test_generate_monthly_report_sends_email(mocker, mocked_dependencies):
-    mock_get, mock_send, mock_users = mocked_dependencies
-
-    mock_users.return_value = [mocker.Mock(id=1, email="test@example.com")]
-    mock_get.return_value = {
-        "month": "2025-11",
-        "total_spent": 120,
-        "by_category": {"Streaming": 60},
-    }
-
-    generate_monthly_report()
-
-    mock_send.assert_called_once_with(
-        user_email="test@example.com",
-        summary=mock_get.return_value
+    mock_queue = mocker.Mock()
+    mocker.patch("api.tasks.report_tasks.get_report_queue", return_value=mock_queue)
+    mock_month = mocker.patch(
+        "api.tasks.report_tasks.date_helpers.get_previous_month",
+        return_value="2025-11"
     )
 
-def test_generate_monthly_report_handles_no_data(mocker, mocked_dependencies):
-    mock_get, mock_send, mock_users = mocked_dependencies
+    return mock_users, mock_queue, mock_month
 
-    mock_users.return_value = [mocker.Mock(id=1, email="test@example.com")]
-    mock_get.return_value = {"month": "2025-11", "total_spent": 0, "by_category": {}}
+@pytest.fixture
+def mocked_dependencies_2(mocker):
+    """
+    Provides patched versions of task dependencies for send_single_user_monthly_report.
+    """
+    mock_summary = mocker.patch("api.services.subscription.get_monthly_summary")
+    mock_get_user = mocker.patch("api.services.user.get_user_by_id")
+    mock_send_email = mocker.patch("api.tasks.email_tasks.send_monthly_summary_email")
 
-    generate_monthly_report()
+    return mock_summary, mock_get_user, mock_send_email
 
-    mock_send.assert_not_called()
-
-def test_generate_monthly_report_continues_on_error(mocker, mocked_dependencies):
-    mock_get, mock_send, mock_users = mocked_dependencies
-
-    mock_users.return_value = [
-        mocker.Mock(id=1, email="u1@example.com"), 
-        mocker.Mock(id=2, email="u2@example.com")
-    ]
-
-    mock_get.return_value = {"month": "2025-11", "total_spent": 50, "by_category": {}}
-    mock_send.side_effect = [Exception("Email fail"), True]
-
-    generate_monthly_report()
-
-    assert mock_send.call_count == 2  # still attempts for user2
-
-def test_generate_monthly_report_multiple_users(mocker, mocked_dependencies):
-    mock_get, mock_send, mock_users = mocked_dependencies
+def test_generate_monthly_report_enqueues_job_per_user(mocker, mocked_dependencies_1):
+    mock_users, mock_queue, _ = mocked_dependencies_1
 
     mock_users.return_value = [
-        mocker.Mock(id=1, email="u1@example.com"), 
-        mocker.Mock(id=2, email="u2@example.com")
+        mocker.Mock(id=1),
+        mocker.Mock(id=2),
     ]
 
-    mock_get.side_effect = [
-        {"month": "2025-11", "total_spent": 0, "by_category": {}},
-        {"month": "2025-11", "total_spent": 80, "by_category": {"Games": 80}},
-    ]
+    report_tasks.generate_monthly_report()
 
-    generate_monthly_report()
+    assert mock_queue.enqueue.call_count == 2
 
-    mock_send.assert_called_once_with(
-        user_email="u2@example.com",
-        summary={"month": "2025-11", "total_spent": 80, "by_category": {"Games": 80}},
+def test_generate_monthly_report_enqueue_arguments(mocker, mocked_dependencies_1):
+    mock_users, mock_queue, _ = mocked_dependencies_1
+
+    user = mocker.Mock(id=42)
+    mock_users.return_value = [user]
+
+    report_tasks.generate_monthly_report()
+
+    mock_queue.enqueue.assert_called_once()
+    args, _ = mock_queue.enqueue.call_args
+
+    assert args[0].__name__ == "send_single_user_monthly_report"
+    assert args[1] == 42
+    assert args[2] == "2025-11"
+
+def test_generate_monthly_report_sets_retry_policy(mocker, mocked_dependencies_1):
+    mock_users, mock_queue, _ = mocked_dependencies_1
+
+    mock_users.return_value = [mocker.Mock(id=1)]
+
+    report_tasks.generate_monthly_report()
+
+    _, kwargs = mock_queue.enqueue.call_args
+    retry = kwargs['retry']
+
+    assert isinstance(retry, Retry)
+    assert retry.max == 3
+
+def test_send_single_user_monthly_report_sends_email(
+    mocker,
+    mocked_dependencies_2
+):
+    mock_summary, mock_get_user, mock_send_email = mocked_dependencies_2
+
+    mock_summary.return_value = {
+        "total_spent": 120,
+        "by_category": {"Streaming": 120},
+    }
+
+    mock_get_user.return_value = mocker.Mock(
+        email="test@example.com"
+    )
+
+    report_tasks.send_single_user_monthly_report(user_id=1, month="2025-11")
+
+    mock_send_email.assert_called_once_with(
+        user_email="test@example.com",
+        summary=mock_summary.return_value,
+    )
+
+def test_send_single_user_monthly_report_skips_when_no_spending(
+    mocked_dependencies_2
+):
+    mock_summary, mock_get_user, mock_send_email = mocked_dependencies_2
+
+    mock_summary.return_value = {
+        "total_spent": 0,
+        "by_category": {},
+    }
+
+    report_tasks.send_single_user_monthly_report(
+        user_id=1,
+        month="2025-11"
+    )
+
+    mock_send_email.assert_not_called()
+    mock_get_user.assert_not_called()
+
+def test_send_single_user_monthly_report_handles_email_failure(
+    mocker,
+    mocked_dependencies_2
+):
+    mock_summary, mock_get_user, mock_send_email = mocked_dependencies_2
+
+    mock_summary.return_value = {
+        "total_spent": 30,
+        "by_category": {},
+    }
+
+    mock_get_user.return_value = mocker.Mock(
+        email="fail@example.com"
+    )
+
+    mock_send_email.side_effect = Exception("Email sending failed")
+
+    # Act + Assert: Should not raise
+    report_tasks.send_single_user_monthly_report(
+        user_id=7,
+        month="2025-11"
     )
