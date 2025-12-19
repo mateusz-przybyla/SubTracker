@@ -1,11 +1,8 @@
 import pytest
 import fakeredis
-from decimal import Decimal
 from datetime import date
 from rq import Queue
 
-from api.models import UserModel, SubscriptionModel
-from api.models.enums import BillingCycleEnum
 from api.tasks import report_tasks
 
 @pytest.fixture
@@ -23,31 +20,6 @@ def mock_report_queue(mocker, report_queue):
         return_value=report_queue
     )
     return report_queue
-
-@pytest.fixture
-def user_factory(db_session):
-    def _factory(email):
-        user = UserModel(username="user", email=email, password="secret")
-        db_session.add(user)
-        db_session.commit()
-        return user
-    return _factory
-
-@pytest.fixture
-def subscription_factory(db_session):
-    def _factory(user_id, next_payment_date):
-        subscription = SubscriptionModel(
-            name="Netflix",
-            price=Decimal("29.99"),
-            billing_cycle=BillingCycleEnum.monthly,
-            next_payment_date=next_payment_date,
-            category="Entertainment",
-            user_id=user_id
-        )
-        db_session.add(subscription)
-        db_session.commit()
-        return subscription
-    return _factory
 
 def test_generate_monthly_report_enqueues_job_per_user(
     app,

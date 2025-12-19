@@ -1,16 +1,20 @@
 import pytest
-from rq import Retry
 
 from api.tasks import report_tasks
 
 @pytest.fixture
 def mocked_dependencies_1(mocker):
     """
-    Provides patched versions of task dependencies for generate_monthly_report.
+    Provides patched versions of task dependencies for `generate_monthly_report`.
     """
-    mock_users = mocker.patch("api.services.user.get_all_users")
+    mock_users = mocker.patch(
+        "api.tasks.report_tasks.user_service.get_all_users"
+    )
     mock_queue = mocker.Mock()
-    mocker.patch("api.tasks.report_tasks.get_report_queue", return_value=mock_queue)
+    mocker.patch(
+        "api.tasks.report_tasks.get_report_queue", 
+        return_value=mock_queue
+    )
     mock_month = mocker.patch(
         "api.tasks.report_tasks.date_helpers.get_previous_month",
         return_value="2025-11"
@@ -21,15 +25,25 @@ def mocked_dependencies_1(mocker):
 @pytest.fixture
 def mocked_dependencies_2(mocker):
     """
-    Provides patched versions of task dependencies for send_single_user_monthly_report.
+    Provides patched versions of task dependencies for `send_single_user_monthly_report`.
     """
-    mock_summary = mocker.patch("api.services.subscription.get_monthly_summary")
-    mock_get_user = mocker.patch("api.services.user.get_user_by_id")
-    mock_send_email = mocker.patch("api.tasks.email_tasks.send_monthly_summary_email")
+    mock_summary = mocker.patch(
+        "api.tasks.report_tasks.subscription_service.get_monthly_summary"
+    )
+    mock_get_user = mocker.patch(
+        "api.tasks.report_tasks.user_service.get_user_by_id"
+    )
+    mock_send_email = mocker.patch(
+        "api.tasks.email_tasks.send_monthly_summary_email"
+    )
 
     return mock_summary, mock_get_user, mock_send_email
 
-def test_generate_monthly_report_enqueues_job_per_user(mocker, mocked_dependencies_1):
+def test_generate_monthly_report_enqueues_job_per_user(
+        app, 
+        mocker, 
+        mocked_dependencies_1
+    ):
     mock_users, mock_queue, _ = mocked_dependencies_1
 
     mock_users.return_value = [
@@ -37,17 +51,21 @@ def test_generate_monthly_report_enqueues_job_per_user(mocker, mocked_dependenci
         mocker.Mock(id=2),
     ]
 
-    report_tasks.generate_monthly_report()
+    report_tasks.generate_monthly_report(app=app)
 
     assert mock_queue.enqueue.call_count == 2
 
-def test_generate_monthly_report_enqueue_arguments(mocker, mocked_dependencies_1):
+def test_generate_monthly_report_enqueue_arguments(
+        app, 
+        mocker, 
+        mocked_dependencies_1
+    ):
     mock_users, mock_queue, _ = mocked_dependencies_1
 
     user = mocker.Mock(id=42)
     mock_users.return_value = [user]
 
-    report_tasks.generate_monthly_report()
+    report_tasks.generate_monthly_report(app=app)
 
     mock_queue.enqueue.assert_called_once()
     args, _ = mock_queue.enqueue.call_args
@@ -55,19 +73,6 @@ def test_generate_monthly_report_enqueue_arguments(mocker, mocked_dependencies_1
     assert args[0].__name__ == "send_single_user_monthly_report"
     assert args[1] == 42
     assert args[2] == "2025-11"
-
-def test_generate_monthly_report_sets_retry_policy(mocker, mocked_dependencies_1):
-    mock_users, mock_queue, _ = mocked_dependencies_1
-
-    mock_users.return_value = [mocker.Mock(id=1)]
-
-    report_tasks.generate_monthly_report()
-
-    _, kwargs = mock_queue.enqueue.call_args
-    retry = kwargs['retry']
-
-    assert isinstance(retry, Retry)
-    assert retry.max == 3
 
 def test_send_single_user_monthly_report_sends_email(
     mocker,

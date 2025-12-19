@@ -3,8 +3,7 @@ import fakeredis
 from datetime import date
 from rq import Queue
 
-from api.models import UserModel, SubscriptionModel, ReminderLogModel
-from api.models.enums import BillingCycleEnum
+from api.models import ReminderLogModel
 from api.tasks import reminder_tasks
 from api.exceptions import SubscriptionNotFoundError
 
@@ -23,31 +22,6 @@ def mock_reminder_queue(mocker, reminder_queue):
         return_value=reminder_queue
     )
     return reminder_queue
-
-@pytest.fixture
-def user_factory(db_session):
-    def _factory(email):
-        user = UserModel(username="user", email=email, password="secret")
-        db_session.add(user)
-        db_session.commit()
-        return user
-    return _factory
-
-@pytest.fixture
-def subscription_factory(db_session):
-    def _factory(user_id, next_payment_date, name="Netflix"):
-        sub = SubscriptionModel(
-            name=name,
-            price=29,
-            billing_cycle=BillingCycleEnum.monthly,
-            next_payment_date=next_payment_date,
-            category="Entertainment",
-            user_id=user_id
-        )
-        db_session.add(sub)
-        db_session.commit()
-        return sub
-    return _factory
 
 def test_check_upcoming_payments_enqueues_job_per_subscription(
     app,

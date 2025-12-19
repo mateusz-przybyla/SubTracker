@@ -188,7 +188,7 @@ Registered jobs:
 - `check_upcoming_payments`
     - Runs: **every 24 hours**
     - Processed by: **Reminder Worker**
-    - Purpose: Sends upcoming payment reminders and creates reminder logs.
+    - Purpose: Enqueues reminder jobs (one per subscription) for upcoming payments.
 - `generate_monthly_report`
     - Runs: **every 30 days**
     - Processed by: **Report Worker**
@@ -283,9 +283,9 @@ docker-compose exec web pytest -v --cov=api tests/
 ```
 
 Test structure:
-- `tests/unit/` → models, schemas, blocklist, helpers
-- `tests/service/` → service layer
-- `tests/integration/` → tasks, resources
+- `tests/unit/`
+- `tests/service/`
+- `tests/integration/`
 
 Coverage: **92%**
 
