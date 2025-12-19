@@ -1,86 +1,128 @@
-from datetime import timedelta, date
+import pytest
+import fakeredis
+from datetime import date
+from rq import Queue
 
-from api.models import SubscriptionModel, ReminderLogModel
-from api.tasks.reminder_tasks import check_upcoming_payments
+from api.models import UserModel, SubscriptionModel, ReminderLogModel
+from api.models.enums import BillingCycleEnum
+from api.tasks import reminder_tasks
+from api.exceptions import SubscriptionNotFoundError
 
-def test_check_upcoming_payments_sends_reminders(app, db_session, sample_user, mocker):
-    today = date.today()
+@pytest.fixture
+def fake_redis_conn():
+    return fakeredis.FakeRedis()
 
-    # 2 subs matching criteria -> [1, 7] days
-    sub1 = SubscriptionModel(
-        user_id=sample_user.id,
-        name="Sub1",
-        price=19.99,
-        billing_cycle="monthly",
-        next_payment_date=today + timedelta(days=1),
-        category="music"
+@pytest.fixture
+def reminder_queue(fake_redis_conn):
+    return Queue("reminders", connection=fake_redis_conn)
+
+@pytest.fixture
+def mock_reminder_queue(mocker, reminder_queue):
+    mocker.patch(
+        "api.tasks.reminder_tasks.get_reminder_queue",
+        return_value=reminder_queue
     )
-    sub2 = SubscriptionModel(
-        user_id=sample_user.id,
-        name="Sub2",
-        price=19.99,
-        billing_cycle="monthly",
-        next_payment_date=today + timedelta(days=7),
-        category="music"
-    )
-    # 1 sub not matching criteria -> 3 days
-    sub3 = SubscriptionModel(
-        user_id=sample_user.id,
-        name="SkipSub",
-        price=19.99,
-        billing_cycle="monthly",
-        next_payment_date=today + timedelta(days=3),
-        category="music"
-    )
-    
-    db_session.add_all([sub1, sub2, sub3])
-    db_session.commit()
+    return reminder_queue
 
-    # Mock external side effects
-    mock_send = mocker.patch(
-        "api.tasks.reminder_tasks.send_email_reminder",
-        return_value=True
-    )
+@pytest.fixture
+def user_factory(db_session):
+    def _factory(email):
+        user = UserModel(username="user", email=email, password="secret")
+        db_session.add(user)
+        db_session.commit()
+        return user
+    return _factory
 
-    check_upcoming_payments(app=app)
+@pytest.fixture
+def subscription_factory(db_session):
+    def _factory(user_id, next_payment_date, name="Netflix"):
+        sub = SubscriptionModel(
+            name=name,
+            price=29,
+            billing_cycle=BillingCycleEnum.monthly,
+            next_payment_date=next_payment_date,
+            category="Entertainment",
+            user_id=user_id
+        )
+        db_session.add(sub)
+        db_session.commit()
+        return sub
+    return _factory
 
-    # assert mail was sent 2×
-    assert mock_send.call_count == 2
-
-    # assert reminder logs created
-    logs = ReminderLogModel.query.order_by(ReminderLogModel.id).all()
-    assert len(logs) == 2
-    assert logs[0].subscription_id == sub1.id
-    assert logs[0].success is True
-    assert logs[1].subscription_id == sub2.id
-    assert logs[1].success is True
-
-def test_check_upcoming_payments_logs_error_on_send_failure(
-        app, db_session, sample_user, mocker
+def test_check_upcoming_payments_enqueues_job_per_subscription(
+    app,
+    mock_reminder_queue,
+    user_factory,
+    subscription_factory,
+    mocker
 ):
-    today = date.today()
+    """
+    Verifies that `check_upcoming_payments` enqueues exactly one reminder job
+    per subscription with an upcoming payment.
+    """
+    user = user_factory(email="user@example.com")
 
-    sub = SubscriptionModel(
-        user_id=sample_user.id,
-        name="BrokenSub",
-        price=9.99,
-        billing_cycle="monthly",
-        next_payment_date=today + timedelta(days=1),
-        category="tech"
-    )
-
-    db_session.add(sub)
-    db_session.commit()
+    sub1 = subscription_factory(user.id, date(2025, 11, 10), name="Hulu")
+    sub2 = subscription_factory(user.id, date(2025, 11, 11), name="Disney+")
 
     mocker.patch(
-        "api.tasks.reminder_tasks.send_email_reminder",
-        side_effect=Exception("Email fail")
+        "api.tasks.reminder_tasks.subscription_service.get_subscriptions_due_in",
+        return_value=[sub1, sub2]
     )
 
-    check_upcoming_payments(app=app)
+    reminder_tasks.check_upcoming_payments(app=app)
 
+    assert mock_reminder_queue.count == 2
+
+    job = mock_reminder_queue.jobs[0]
+    assert job.func_name.endswith("send_single_subscription_reminder")
+
+def test_send_single_subscription_reminder_sends_email_and_logs_success(
+    app,
+    user_factory,
+    subscription_factory,
+    mocker
+):
+    user = user_factory(email="user@example.com")
+    sub = subscription_factory(user.id, date(2025, 11, 10))
+
+    mock_send = mocker.patch(
+        "api.tasks.reminder_tasks.email_tasks.send_email_reminder"
+    )
+
+    reminder_tasks.send_single_subscription_reminder(
+        sub_id=sub.id,
+        app=app
+    )
+
+    mock_send.assert_called_once_with(
+        user_email=user.email,
+        subscription_name=sub.name,
+        next_payment_date=sub.next_payment_date,
+    )
     logs = ReminderLogModel.query.all()
     assert len(logs) == 1
     assert logs[0].subscription_id == sub.id
-    assert logs[0].success is False
-    assert "Email fail" in logs[0].message
+    assert logs[0].success is True
+
+def test_send_single_subscription_reminder_skips_when_subscription_not_found(
+    app,
+    mocker
+):
+    mocker.patch(
+        "api.tasks.reminder_tasks.subscription_service.get_subscription_by_id",
+        side_effect=SubscriptionNotFoundError("Subscription not found")
+    )
+
+    mock_send = mocker.patch(
+        "api.tasks.reminder_tasks.email_tasks.send_email_reminder"
+    )
+
+    reminder_tasks.send_single_subscription_reminder(
+        sub_id=999,
+        app=app
+    )
+
+    mock_send.assert_not_called()
+    logs = ReminderLogModel.query.all()
+    assert len(logs) == 0

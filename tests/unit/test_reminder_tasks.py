@@ -1,97 +1,142 @@
 import pytest
-from datetime import date, timedelta
 
-from api.tasks.reminder_tasks import check_upcoming_payments
+from api.tasks import reminder_tasks
+from api.exceptions import SubscriptionNotFoundError
 
 @pytest.fixture
-def mocked_dependencies(mocker):
+def mocked_dependencies_1(mocker):
     """
-    Provides patched versions of task dependencies:
-    - get_subscriptions_due_in
-    - send_email_reminder
-    - create_reminder_log
+    Provides patched versions of task dependencies for `check_upcoming_payments`.
     """
-    mock_get = mocker.patch("api.tasks.reminder_tasks.get_subscriptions_due_in")
-    mock_send = mocker.patch("api.tasks.reminder_tasks.send_email_reminder")
-    mock_log = mocker.patch("api.tasks.reminder_tasks.create_reminder_log")
+    mock_get_subs = mocker.patch(
+        "api.tasks.reminder_tasks.subscription_service.get_subscriptions_due_in"
+    )
+    mock_reminder_queue = mocker.Mock()
+    mocker.patch(
+        "api.tasks.reminder_tasks.get_reminder_queue", 
+        return_value=mock_reminder_queue
+    )
 
-    return mock_get, mock_send, mock_log
+    return mock_get_subs, mock_reminder_queue
 
-def make_sub_mock(mocker, sub_id, name, email, next_payment_date):
+@pytest.fixture
+def mocked_dependencies_2(mocker):
+    """
+    Provides patched versions of task dependencies for `send_single_subscription_reminder`.
+    """
+    mock_get_sub = mocker.patch(
+        "api.tasks.reminder_tasks.subscription_service.get_subscription_by_id"
+    )
+    mock_send_email = mocker.patch(
+        "api.tasks.reminder_tasks.email_tasks.send_email_reminder"
+    )
+    mock_create_log = mocker.patch(
+        "api.tasks.reminder_tasks.reminder_log_service.create_reminder_log"
+    )
+
+    return mock_get_sub, mock_send_email, mock_create_log
+
+def test_check_upcoming_payments_enqueues_job_per_subscription(
+        app, 
+        mocker, 
+        mocked_dependencies_1
+    ):  
+    mock_get_subs, mock_reminder_queue = mocked_dependencies_1
+
+    sub1 = mocker.Mock(id=1)
+    sub2 = mocker.Mock(id=2)
+
+    mock_get_subs.return_value = [sub1, sub2]
+
+    reminder_tasks.check_upcoming_payments(app=app)
+
+    assert mock_reminder_queue.enqueue.call_count == 2
+
+def test_check_upcoming_payments_enqueue_arguments(
+        app, 
+        mocker, 
+        mocked_dependencies_1
+    ):
+    mock_get_subs, mock_reminder_queue = mocked_dependencies_1
+
+    sub = mocker.Mock(id=1)
+
+    mock_get_subs.return_value = [sub]
+
+    reminder_tasks.check_upcoming_payments(app=app)
+
+    mock_reminder_queue.enqueue.assert_called_once()
+    args, kwargs = mock_reminder_queue.enqueue.call_args
+
+    assert args[0].__name__ == "send_single_subscription_reminder"
+    assert args[1] == 1
+    assert kwargs['retry'] is not None
+
+def test_send_single_subscription_reminder_sends_email(
+        app, 
+        mocker, 
+        mocked_dependencies_2
+    ):
+    mock_get_sub, mock_send_email, mock_create_log = mocked_dependencies_2
+
     sub = mocker.Mock()
-    sub.id = sub_id
-    sub.name = name
-    sub.next_payment_date = next_payment_date
-    sub.user = mocker.Mock(email=email)
-    return sub
+    sub.id = 1
+    sub.name = "Netflix"
+    sub.next_payment_date = "2025-11-10"
+    sub.user = mocker.Mock(email="user@example.com")
 
-def test_check_upcoming_payments_processes_subscriptions(mocker, mocked_dependencies):
-    mock_get, mock_send, mock_log = mocked_dependencies
+    mock_get_sub.return_value = sub
 
-    today = date.today()
+    reminder_tasks.send_single_subscription_reminder(sub_id=1, app=app)
 
-    sub1 = make_sub_mock(mocker, 1, "Netflix", "test@example.com", today + timedelta(days=1))
-    sub2 = make_sub_mock(mocker, 2, "Spotify", "another@example.com", today + timedelta(days=7))
-
-    mock_get.return_value = [sub1, sub2]
-
-    check_upcoming_payments()
-
-    mock_get.assert_called_once_with([1, 7])
-    assert mock_send.call_count == 2
-    assert mock_log.call_count == 2
-
-    mock_send.assert_any_call(
-        user_email="test@example.com",
+    mock_send_email.assert_called_once_with(
+        user_email="user@example.com",
         subscription_name="Netflix",
-        next_payment_date=sub1.next_payment_date,
-    )
-    mock_send.assert_any_call(
-        user_email="another@example.com",
-        subscription_name="Spotify",
-        next_payment_date=sub2.next_payment_date,
+        next_payment_date="2025-11-10",
     )
 
-    mock_log.assert_any_call(
-        sub_id=1,
+    mock_create_log.assert_called_once_with(
         data={"message": "Reminder sent for Netflix", "success": True},
-    )
-    mock_log.assert_any_call(
-        sub_id=2,
-        data={"message": "Reminder sent for Spotify", "success": True},
-    )
-
-def test_check_upcoming_payments_handles_send_error(mocker, mocked_dependencies):
-    mock_get, mock_send, mock_log = mocked_dependencies
-
-    today = date.today()
-
-    sub1 = make_sub_mock(mocker, 1, "good_sub", "good@example.com", today + timedelta(days=1))
-    sub2 = make_sub_mock(mocker, 2, "bad_sub", "bad@example.com", today + timedelta(days=1))
-
-    mock_get.return_value = [sub1, sub2]
-    mock_send.side_effect = [True, Exception("Mail error")]
-
-    check_upcoming_payments()
-
-    assert mock_send.call_count == 2
-    assert mock_log.call_count == 2
-
-    mock_log.assert_any_call(
         sub_id=1,
-        data={"message": "Reminder sent for good_sub", "success": True},
-    )
-    mock_log.assert_any_call(
-        sub_id=2,
-        data={"message": "Mail error", "success": False},
     )
 
-def test_check_upcoming_payments_no_subscriptions(mocked_dependencies):
-    mock_get, mock_send, mock_log = mocked_dependencies
+def test_send_single_subscription_reminder_skips_when_sub_not_found(
+        app, 
+        mocked_dependencies_2
+    ):
+    mock_get_sub, mock_send_email, mock_create_log = mocked_dependencies_2
 
-    mock_get.return_value = []
+    mock_get_sub.side_effect = SubscriptionNotFoundError()
 
-    check_upcoming_payments()
+    reminder_tasks.send_single_subscription_reminder(sub_id=999, app=app)
 
-    mock_send.assert_not_called()
-    mock_log.assert_not_called()
+    mock_send_email.assert_not_called()
+    mock_create_log.assert_not_called()
+
+def test_send_single_subscription_reminder_handles_email_failure(
+        app, 
+        mocker, 
+        mocked_dependencies_2
+    ):
+    mock_get_sub, mock_send_email, mock_create_log = mocked_dependencies_2
+
+    sub = mocker.Mock()
+    sub.id = 1
+    sub.name = "Spotify"
+    sub.next_payment_date = "2025-12-01"
+    sub.user = mocker.Mock(email="user@example.com")
+    
+    mock_get_sub.return_value = sub
+    mock_send_email.side_effect = Exception("Email sending failed")
+
+    reminder_tasks.send_single_subscription_reminder(sub_id=1, app=app)
+
+    mock_send_email.assert_called_once_with(
+        user_email="user@example.com",
+        subscription_name="Spotify",
+        next_payment_date="2025-12-01",
+    )
+    mock_create_log.assert_called_once_with(
+        data={"message": "Email sending failed", "success": False},
+        sub_id=1,
+    )

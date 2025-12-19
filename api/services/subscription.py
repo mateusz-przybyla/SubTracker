@@ -39,7 +39,7 @@ def create_subscription(data: dict, user_id: int) -> SubscriptionModel:
 def get_user_subscriptions(user_id: int) -> List[SubscriptionModel]:
     return SubscriptionModel.query.filter_by(user_id=user_id).all()
 
-def get_subscription_by_id(sub_id: int, user_id: int) -> SubscriptionModel:
+def get_user_subscription_by_id(sub_id: int, user_id: int) -> SubscriptionModel:
     return check_if_subscription_exists(sub_id, user_id)
 
 def update_subscription(sub_id: int, user_id: int, data: dict) -> SubscriptionModel:
@@ -193,3 +193,9 @@ def get_monthly_summary(user_id: int, month: str | None = None) -> dict[str, obj
         "total_spent": float(round(total_spent, 2)),
         "by_category": {k: float(round(v, 2)) for k, v in by_category.items()},
     }
+
+def get_subscription_by_id(sub_id: int) -> SubscriptionModel:
+    subscription = SubscriptionModel.query.get(sub_id)
+    if not subscription:
+        raise SubscriptionNotFoundError("Subscription not found.")
+    return subscription

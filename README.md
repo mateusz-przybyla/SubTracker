@@ -34,7 +34,7 @@ Includes JWT authentication, MySQL, Redis, background jobs with RQ, scheduled ta
 - **Redis** + **RQ** for async background tasks
 - **RQ Scheduler** for recurring jobs:
     - Daily: `check_upcoming_payments`
-    - Monthly: `send_monthly_user_reports`
+    - Monthly: `generate_monthly_report`
 - Email delivery via **Mailgun API**
 - API documentation via **Flask-Smorest / Swagger UI** at `/swagger-ui`
 - Environment configuration via `.env` and `.flaskenv`
@@ -170,10 +170,11 @@ The system uses three isolated queues, each processed by a dedicated worker cont
 Sends transactional emails (welcome, reminders, monthly summaries).
 
 - **Reminder Worker** (`rq_worker_reminders`)
-Runs `check_upcoming_payments`, sends upcoming payment emails and creates reminder logs.
+Executes reminder-related tasks and processes one reminder job per subscription,
+sending emails and creating reminder logs.
 
 - **Report Worker** (`rq_worker_reports`)
-Generates and emails monthly summaries for all users.
+Processes monthly report jobs, generating and emailing summaries per user.
 
 ### Scheduler (Recurring Jobs)
 
@@ -188,25 +189,27 @@ Registered jobs:
     - Runs: **every 24 hours**
     - Processed by: **Reminder Worker**
     - Purpose: Sends upcoming payment reminders and creates reminder logs.
-- `send_monthly_user_reports`
+- `generate_monthly_report`
     - Runs: **every 30 days**
     - Processed by: **Report Worker**
-    - Purpose: Generates and sends monthly spending summaries to all users.
+    - Purpose: Enqueues monthly report jobs (one per user).
 
 ### Task Layer
 
-Tasks encapsulate business logic used by workers:
+Tasks encapsulate asynchronous business logic executed by RQ workers:
 
-- **Email Task** (`send_user_registration_email` / `send_email_reminder` / `send_monthly_report_email`)
-Sends emails via the Mailgun API.
+- **Email Task** (`send_user_registration_email`, `send_email_reminder`, `send_monthly_summary_email`)
+Responsible only for sending emails via Mailgun.
 
-- **Reminder Task** (`check_upcoming_payments`)
-Finds subscriptions due soon (1 or 7 days), queues appropriate emails, writes reminder logs.
+- **Reminder Task** (`check_upcoming_payments`, `send_single_subscription_reminder`)
+Identify subscriptions with upcoming payments and enqueue **one reminder job per subscription**.
+Each job sends a reminder email and persists reminder logs.
 
-- **Report Task** (`send_monthly_user_reports`)
-Aggregates user spending per month and sends summary emails.\
+- **Report Task** (`send_monthly_user_reports`, `send_single_user_monthly_report`)
+Generate monthly spending summaries and enqueue **one report job per user**, ensuring isolated
+processing and retryability.
 
-Reminder and Report Tasks executed by workers run inside the Flask application context (`with app.app_context()`), allowing them to access the database, models, configuration and service layer.
+Reminder and Report Tasks executed by workers run inside the Flask application context (`app.app_context()`), allowing access to the database, configuration and service layer.
 
 ---
 

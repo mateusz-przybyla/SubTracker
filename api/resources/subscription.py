@@ -1,5 +1,5 @@
 from flask.views import MethodView
-from flask_smorest import Blueprint, abort
+from flask_smorest import Blueprint
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from typing import List
 
@@ -34,7 +34,7 @@ class Subscription(MethodView):
     @apply_common_responses(blp, RESOURCE_ERRORS)
     def get(self, sub_id: int) -> SubscriptionModel:
         user_id = get_jwt_identity()
-        return subscription_service.get_subscription_by_id(sub_id, user_id)
+        return subscription_service.get_user_subscription_by_id(sub_id, user_id)
     
     @jwt_required()
     @blp.arguments(SubscriptionUpdateSchema)
