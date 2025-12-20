@@ -93,7 +93,7 @@ def test_login_user_bad_password(client, create_user_details):
     )
 
     assert response.status_code == 401
-    assert response.json["message"] == "Invalid credentials."
+    assert response.json['message'] == "Invalid credentials."
 
 def test_login_user_bad_email(client, create_user_details):
     _, _, password = create_user_details
@@ -103,7 +103,7 @@ def test_login_user_bad_email(client, create_user_details):
     )
 
     assert response.status_code == 401
-    assert response.json["message"] == "Invalid credentials."
+    assert response.json['message'] == "Invalid credentials."
 
 def test_logout_user(client, create_user_jwts):
     response = client.post(
@@ -112,7 +112,7 @@ def test_logout_user(client, create_user_jwts):
     )
 
     assert response.status_code == 200
-    assert response.json["message"] == "Successfully logged out."
+    assert response.json['message'] == "Successfully logged out."
 
 def test_logout_user_twice(client, create_user_jwts):
     client.post(
@@ -150,6 +150,47 @@ def test_logout_user_invalid_token(client):
         "message": "Signature verification failed.",
     }
 
+def test_refresh_token_invalid(client):
+    response = client.post(
+        "/refresh",
+        headers={"Authorization": "Bearer bad_jwt"},
+    )
+
+    assert response.status_code == 401
+
+def test_refresh_token(client, create_user_jwts):
+    response = client.post(
+        "/refresh",
+        headers={"Authorization": f"Bearer {create_user_jwts[1]}"},
+    )
+
+    assert response.status_code == 200
+    assert response.json['access_token']
+
+def test_get_users_me_returns_authenticated_user_profile(
+    client,
+    create_user_jwts
+):
+    response = client.get(
+        "/users/me",
+        headers={
+            "Authorization": f"Bearer {create_user_jwts[0]}"
+        }
+    )
+
+    assert response.status_code == 200
+    assert "id" in response.json
+    assert "email" in response.json
+    assert "created_at" in response.json
+    
+def test_get_users_me_requires_authentication(client):
+    response = client.get("/users/me")
+
+    assert response.status_code == 401
+    assert response.json['error'] == "authorization_required"
+
+# Integration tests for the developer test endpoints
+
 def test_get_user_details(client, create_user_details):
     response = client.get(
         "/users/1",  # assume user id is 1
@@ -168,25 +209,7 @@ def test_get_user_details_missing(client):
     )
 
     assert response.status_code == 404
-    assert response.json == {"code": 404, "status": "Not Found"}
-
-def test_refresh_token_invalid(client):
-    response = client.post(
-        "/refresh",
-        headers={"Authorization": "Bearer bad_jwt"},
-    )
-
-    assert response.status_code == 401
-
-
-def test_refresh_token(client, create_user_jwts):
-    response = client.post(
-        "/refresh",
-        headers={"Authorization": f"Bearer {create_user_jwts[1]}"},
-    )
-
-    assert response.status_code == 200
-    assert response.json['access_token']
+    assert response.json['message'] == "User not found."
 
 def test_expired_token_callback(client):
     expired_token = create_access_token(

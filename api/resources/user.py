@@ -73,28 +73,15 @@ class TokenRefresh(MethodView):
     @jwt_required(refresh=True)
     @blp.response(200, description="Access token refreshed successfully.")
     def post(self) -> dict[str, str]:
-        current_user = get_jwt_identity()
-        new_token = create_access_token(identity=current_user, fresh=False)
+        user_id = get_jwt_identity()
+        new_token = create_access_token(identity=user_id, fresh=False)
         return {"access_token": new_token}
-
-# dev endpoints to view and delete users    
-@blp.route("/users/<int:user_id>")
-class User(MethodView):
-    @blp.response(200, UserSchema, description="User details retrieved successfully.")
-    @blp.alt_response(404, description="User not found.")
-    def get(self, user_id: int) -> UserModel:
-        user = UserModel.query.get_or_404(user_id)
-        return user
     
-    @blp.response(200, description="User deleted successfully.")
-    @blp.alt_response(404, description="User not found.")
-    def delete(self, user_id: int) -> dict[str, str]:
-        user = UserModel.query.get_or_404(user_id)
-
-        try:
-            db.session.delete(user)
-            db.session.commit()
-        except SQLAlchemyError:
-            abort(500, message="An error occurred while deleting the user.")
-
-        return {"message": "User deleted."}
+@blp.route("/users/me")
+class UserMe(MethodView):
+    @jwt_required()
+    @blp.response(200, UserSchema, description="Authenticated user's profile.")
+    def get(self) -> UserModel:
+        user_id = get_jwt_identity()
+        user = UserModel.query.filter_by(id=user_id).first()
+        return user
