@@ -52,12 +52,12 @@ def test_get_user_subscriptions_empty(sample_user):
     assert results == []
 
 def test_get_subscription_by_id_success(sample_user, sample_subscription):
-    result = service.get_subscription_by_id(sample_subscription.id, sample_user.id)
+    result = service.get_user_subscription_by_id(sample_subscription.id, sample_user.id)
     assert result.name == "Netflix"
 
 def test_get_subscription_by_id_not_found(sample_user):
     with pytest.raises(SubscriptionNotFoundError) as exc_info:
-        service.get_subscription_by_id(999, sample_user.id)
+        service.get_user_subscription_by_id(999, sample_user.id)
 
     assert str(exc_info.value) == "Subscription not found."
 

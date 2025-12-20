@@ -25,7 +25,7 @@ def create_reminder_log(data: dict, sub_id: int) -> ReminderLogModel:
     return reminder_log
 
 def get_reminder_logs_by_subscription(sub_id: int, user_id: int) -> List[ReminderLogModel]:
-    subscription_service.check_if_subscription_exists(sub_id, user_id)
+    subscription_service.get_user_subscription_by_id(sub_id, user_id)
     return ReminderLogModel.query.filter_by(subscription_id=sub_id).all()
 
 def get_reminder_log_by_id(log_id: int) -> ReminderLogModel:

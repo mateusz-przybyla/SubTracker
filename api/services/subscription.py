@@ -17,12 +17,6 @@ def check_if_subscription_name_exists(user_id: int, name: str) -> None:
     if SubscriptionModel.query.filter_by(user_id=user_id, name=name).first():
         raise SubscriptionExistError("You already have a subscription with this name.")
 
-def check_if_subscription_exists(sub_id: int, user_id: int) -> SubscriptionModel:
-    subscription = SubscriptionModel.query.filter_by(id=sub_id, user_id=user_id).first()
-    if not subscription:
-        raise SubscriptionNotFoundError("Subscription not found.")
-    return subscription
-
 def create_subscription(data: dict, user_id: int) -> SubscriptionModel:
     check_if_subscription_name_exists(user_id, data['name'])
 
@@ -40,10 +34,18 @@ def get_user_subscriptions(user_id: int) -> List[SubscriptionModel]:
     return SubscriptionModel.query.filter_by(user_id=user_id).all()
 
 def get_user_subscription_by_id(sub_id: int, user_id: int) -> SubscriptionModel:
-    return check_if_subscription_exists(sub_id, user_id)
+    subscription = SubscriptionModel.query.filter_by(
+        id=sub_id,
+        user_id=user_id
+    ).first()
+
+    if not subscription:
+        raise SubscriptionNotFoundError("Subscription not found.")
+
+    return subscription
 
 def update_subscription(sub_id: int, user_id: int, data: dict) -> SubscriptionModel:
-    subscription = check_if_subscription_exists(sub_id, user_id)
+    subscription = get_user_subscription_by_id(sub_id, user_id)
 
     if "name" in data and data['name'] != subscription.name:
         check_if_subscription_name_exists(user_id, data['name'])
@@ -60,7 +62,7 @@ def update_subscription(sub_id: int, user_id: int, data: dict) -> SubscriptionMo
     return subscription
 
 def delete_subscription(sub_id: int, user_id: int) -> None:
-    subscription = check_if_subscription_exists(sub_id, user_id)
+    subscription = get_user_subscription_by_id(sub_id, user_id)
     
     try:
         db.session.delete(subscription)
@@ -195,7 +197,10 @@ def get_monthly_summary(user_id: int, month: str | None = None) -> dict[str, obj
     }
 
 def get_subscription_by_id(sub_id: int) -> SubscriptionModel:
-    subscription = SubscriptionModel.query.get(sub_id)
+    """
+    Retrieve a subscription by its ID - for tasks.
+    """
+    subscription = SubscriptionModel.query.filter_by(id=sub_id).first()
     if not subscription:
         raise SubscriptionNotFoundError("Subscription not found.")
     return subscription
