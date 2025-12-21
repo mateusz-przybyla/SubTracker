@@ -24,19 +24,19 @@ def test_get_reminder_logs_by_subscription(db_session, sample_subscription):
     db_session.add_all([log1, log2])
     db_session.commit()
 
-    results = service.get_reminder_logs_by_subscription(sample_subscription.id, sample_subscription.user_id)
+    results = service.get_user_reminder_logs_by_subscription(sample_subscription.id, sample_subscription.user_id)
     assert len(results) == 2
     messages = [log.message for log in results]
     assert "Reminder log 1" in messages
     assert "Reminder log 2" in messages
 
 def test_get_reminder_logs_by_subscription_empty(sample_subscription):
-    results = service.get_reminder_logs_by_subscription(sample_subscription.id, sample_subscription.user_id)
+    results = service.get_user_reminder_logs_by_subscription(sample_subscription.id, sample_subscription.user_id)
     assert results == []
 
 def test_get_reminder_logs_by_subscription_not_found(sample_user):
     with pytest.raises(SubscriptionNotFoundError) as exc_info:
-        service.get_reminder_logs_by_subscription(999, sample_user.id)
+        service.get_user_reminder_logs_by_subscription(999, sample_user.id)
 
     assert str(exc_info.value) == "Subscription not found."
 
@@ -45,12 +45,12 @@ def test_get_single_reminder_log(db_session, sample_subscription):
     db_session.add(log)
     db_session.commit()
 
-    result = service.get_reminder_log_by_id(log.id)
+    result = service.get_user_reminder_log_by_id(log.id, sample_subscription.user_id)
     assert result.message == "Single log"
 
 def test_get_single_reminder_log_not_found(db_session):
     with pytest.raises(ReminderLogNotFoundError) as exc_info:
-        service.get_reminder_log_by_id(999)
+        service.get_user_reminder_log_by_id(999, 1)
 
     assert str(exc_info.value) == "Reminder log not found."
 
@@ -59,13 +59,13 @@ def test_delete_reminder_log_success(db_session, sample_subscription):
     db_session.add(log)
     db_session.commit()
 
-    service.delete_reminder_log(log.id)
+    service.delete_reminder_log(log.id, sample_subscription.user_id)
 
     deleted_log = db_session.get(ReminderLogModel, log.id)
     assert deleted_log is None
 
 def test_delete_reminder_log_not_found(db_session):
     with pytest.raises(ReminderLogNotFoundError) as exc_info:
-        service.delete_reminder_log(999)
+        service.delete_reminder_log(999, 1)
 
     assert str(exc_info.value) == "Reminder log not found."
