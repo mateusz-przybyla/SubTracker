@@ -20,7 +20,9 @@ def create_reminder_log(data: dict, sub_id: int) -> ReminderLogModel:
 
 def get_user_reminder_logs_by_subscription(sub_id: int, user_id: int) -> List[ReminderLogModel]:
     subscription_service.get_user_subscription_by_id(sub_id, user_id)
-    return ReminderLogModel.query.filter_by(subscription_id=sub_id).all()
+    return ReminderLogModel.query.filter_by(
+        subscription_id=sub_id
+    ).order_by(ReminderLogModel.sent_at.desc()).all()
 
 def get_user_reminder_log_by_id(log_id: int, user_id: int) -> ReminderLogModel:
     reminder_log = ReminderLogModel.query.filter_by(id=log_id).first()
