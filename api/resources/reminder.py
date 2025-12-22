@@ -6,6 +6,7 @@ from typing import List
 from api.schemas import SubscriptionSchema, UpcomingQueryArgsSchema
 from api.models import SubscriptionModel
 from api.services import subscription as subscription_service
+from api.docs.common_responses import apply_common_responses, LISTING_ERRORS
 
 blp = Blueprint("reminder", __name__, description="Endpoints for managing upcoming subscription payment reminders")
 
@@ -14,6 +15,7 @@ class RemindersList(MethodView):
     @jwt_required()
     @blp.arguments(UpcomingQueryArgsSchema, location="query")
     @blp.response(200, SubscriptionSchema(many=True), description="List of user upcoming payments for subscriptions.")
+    @apply_common_responses(blp, LISTING_ERRORS)
     def get(self, query_args: dict[str, int]) -> List[SubscriptionModel]:
         """Return upcoming subscription payments for the authenticated user within the specified number of days."""
         user_id = get_jwt_identity()
