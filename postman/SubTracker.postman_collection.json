@@ -62,52 +62,6 @@
 					"response": []
 				},
 				{
-					"name": "/users/<id> - get user (dev)",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{url}}/users/2",
-							"host": [
-								"{{url}}"
-							],
-							"path": [
-								"users",
-								"2"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "/users/<id> - delete user (dev)",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{url}}/users/2",
-							"host": [
-								"{{url}}"
-							],
-							"path": [
-								"users",
-								"2"
-							]
-						}
-					},
-					"response": []
-				},
-				{
 					"name": "/refresh - get non-fresh token",
 					"request": {
 						"auth": {
@@ -160,6 +114,34 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "/users/me - fetch current user",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/users/me",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"users",
+								"me"
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		},
@@ -178,6 +160,33 @@
 							],
 							"path": [
 								"guest"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/protected - test protected endpoint",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/protected",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"protected"
 							]
 						}
 					},
@@ -211,7 +220,25 @@
 					"response": []
 				},
 				{
-					"name": "/protected - test protected endpoint",
+					"name": "/users/<id> - get user",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/users/2",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"users",
+								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/users/<id> - delete user",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -223,15 +250,16 @@
 								}
 							]
 						},
-						"method": "GET",
+						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "{{url}}/protected",
+							"raw": "{{url}}/users/2",
 							"host": [
 								"{{url}}"
 							],
 							"path": [
-								"protected"
+								"users",
+								"2"
 							]
 						}
 					},
@@ -313,7 +341,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"name\": \"Spotify14\",\r\n    \"price\": \"25.99\",\r\n    \"billing_cycle\": \"monthly\",\r\n    \"next_payment_date\": \"2025-12-07\",\r\n    \"category\": \"entertainment\"\r\n}",
+							"raw": "{\r\n    \"name\": \"Spotify21\",\r\n    \"price\": \"25.99\",\r\n    \"billing_cycle\": \"monthly\",\r\n    \"next_payment_date\": \"2025-12-26\",\r\n    \"category\": \"entertainment\"\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -327,61 +355,6 @@
 							],
 							"path": [
 								"subscriptions"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "/subscriptions - get subs",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{url}}/subscriptions",
-							"host": [
-								"{{url}}"
-							],
-							"path": [
-								"subscriptions"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "/subscriptions - delete sub",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{url}}/subscriptions/1",
-							"host": [
-								"{{url}}"
-							],
-							"path": [
-								"subscriptions",
-								"1"
 							]
 						}
 					},
@@ -410,6 +383,33 @@
 							"path": [
 								"subscriptions",
 								"28"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/subscriptions - get subs",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/subscriptions",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"subscriptions"
 							]
 						}
 					},
@@ -447,6 +447,34 @@
 							"path": [
 								"subscriptions",
 								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/subscriptions - delete sub",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/subscriptions/1",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"subscriptions",
+								"1"
 							]
 						}
 					},
@@ -563,7 +591,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{url}}/reminders/upcoming?days=3",
+							"raw": "{{url}}/reminders/upcoming?days=1",
 							"host": [
 								"{{url}}"
 							],
@@ -574,7 +602,7 @@
 							"query": [
 								{
 									"key": "days",
-									"value": "3"
+									"value": "1"
 								}
 							]
 						}
@@ -602,7 +630,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{url}}/stats/summary?month=2025-15",
+							"raw": "{{url}}/stats/summary?month=2025-11",
 							"host": [
 								"{{url}}"
 							],
@@ -613,7 +641,7 @@
 							"query": [
 								{
 									"key": "month",
-									"value": "2025-15"
+									"value": "2025-11"
 								}
 							]
 						}
