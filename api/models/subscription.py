@@ -1,5 +1,3 @@
-from sqlalchemy import DateTime
-from sqlalchemy.sql import func
 from api.extensions import db
 from api.models.enums import BillingCycleEnum
 
@@ -14,8 +12,8 @@ class SubscriptionModel(db.Model):
     next_payment_date = db.Column(db.Date, nullable=False)
     category = db.Column(db.String(80), nullable=True)
 
-    created_at = db.Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = db.Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now(), nullable=False)
+    updated_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now(), onupdate=db.func.now(), nullable=False)
 
     # Relationships
     user = db.relationship("UserModel", back_populates="subscriptions")
