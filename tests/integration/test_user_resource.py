@@ -42,10 +42,11 @@ def test_register_user(client, mock_email_queue):
     assert response.json == {"message": "User created successfully."}
 
     mock_email_queue.enqueue.assert_called_once()
-    args, _ = mock_email_queue.enqueue.call_args
+    args, kwargs = mock_email_queue.enqueue.call_args
     assert args[0].__name__ == "send_user_registration_email"
     assert args[1] == "test@example.com"
     assert args[2] == "user"
+    assert kwargs['retry'].max == 3
 
 def test_register_user_already_exists(client, mock_email_queue):
     username = "user"

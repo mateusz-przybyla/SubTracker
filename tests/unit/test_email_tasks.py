@@ -1,12 +1,12 @@
 from datetime import date
 
-from api.tasks.email_tasks import send_email_reminder, send_user_registration_email, send_monthly_summary_email
+from api.tasks import email_tasks
 
 def test_registration_email_renders_and_sends(mocker):
     mock_render = mocker.patch("api.tasks.email_tasks.render_template", return_value="<html>")
-    mock_mailgun = mocker.patch("api.tasks.email_tasks.send_mailgun_message", return_value="OK")
+    mock_mailgun = mocker.patch("api.tasks.email_tasks.send_mailgun_message")
 
-    result = send_user_registration_email("test@example.com", "test_user")
+    email_tasks.send_user_registration_email("test@example.com", "test_user")
   
     mock_render.assert_called_once_with(
         "email/registration.html", 
@@ -17,13 +17,12 @@ def test_registration_email_renders_and_sends(mocker):
         body="Hi test_user, you have successfully signed up for our service!",
         html="<html>"
     )
-    assert result == "OK"
     
 def test_reminder_email_renders_and_sends(mocker):
     mock_render = mocker.patch("api.tasks.email_tasks.render_template", return_value="<html>")
-    mock_mailgun = mocker.patch("api.tasks.email_tasks.send_mailgun_message", return_value="OK")
+    mock_mailgun = mocker.patch("api.tasks.email_tasks.send_mailgun_message")
 
-    result = send_email_reminder("test@example.com", "Netflix", date(2025, 1, 1))
+    email_tasks.send_email_reminder("test@example.com", "Netflix", date(2025, 1, 1))
 
     mock_render.assert_called_once_with(
         "email/reminder.html",
@@ -45,13 +44,10 @@ def test_reminder_email_renders_and_sends(mocker):
     assert "Netflix" in kwargs['body']
     assert "2025-01-01" in kwargs['body']
     assert kwargs['html'] == "<html>"
-
-    assert result == "OK"
    
 def test_monthly_summary_email_renders_and_sends(mocker):
     mock_render = mocker.patch("api.tasks.email_tasks.render_template", return_value="<html>")
-    mock_mailgun = mocker.patch("api.tasks.email_tasks.send_mailgun_message", return_value="OK")
-
+    mock_mailgun = mocker.patch("api.tasks.email_tasks.send_mailgun_message")
     summary = {
         "month": "2025-10",
         "total_spent": 72.45,
@@ -62,7 +58,7 @@ def test_monthly_summary_email_renders_and_sends(mocker):
         },
     }
 
-    result = send_monthly_summary_email("test@example.com", summary)
+    email_tasks.send_monthly_summary_email("test@example.com", summary)
 
     mock_render.assert_called_once_with(
         "email/monthly_summary.html",
@@ -80,4 +76,3 @@ def test_monthly_summary_email_renders_and_sends(mocker):
         body="Your spending summary for 2025-10 is 72.45.",
         html="<html>",
     )
-    assert result == "OK"

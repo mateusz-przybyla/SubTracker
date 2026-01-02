@@ -5,6 +5,8 @@ from passlib.hash import pbkdf2_sha256 as sha256
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt, get_jwt_identity
 from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime, timezone
+from rq import Retry
+from redis.exceptions import RedisError
 
 from api.extensions import db
 from api.infra.queues import get_email_queue
@@ -37,9 +39,17 @@ class UserRegister(MethodView):
             abort(500, message="An error occurred while creating the user.")
 
         try:
-            get_email_queue().enqueue(send_user_registration_email, user.email, user.username)
-        except Exception as e:
-            current_app.logger.error(f"Failed to enqueue email task | error={e}")
+            get_email_queue().enqueue(
+                send_user_registration_email, 
+                user.email, 
+                user.username,
+                retry=Retry(max=3, interval=[30, 60, 120])
+            )
+        except RedisError as e:
+            current_app.logger.error(
+                "Failed to enqueue registration email task.",
+                extra={"error": str(e)}
+            )
 
         return {"message": "User created successfully."}
         
