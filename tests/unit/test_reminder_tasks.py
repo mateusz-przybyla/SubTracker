@@ -1,7 +1,8 @@
 import pytest
+from datetime import date
 
 from api.tasks import reminder_tasks
-from api.exceptions import SubscriptionNotFoundError
+from api.exceptions import SubscriptionNotFoundError, EmailTemporaryError, EmailPermanentError
 
 @pytest.fixture
 def mocked_dependencies_1(mocker):
@@ -82,7 +83,7 @@ def test_send_single_subscription_reminder_sends_email(
     sub = mocker.Mock()
     sub.id = 1
     sub.name = "Netflix"
-    sub.next_payment_date = "2025-11-10"
+    sub.next_payment_date = date(2025, 11, 10)
     sub.user = mocker.Mock(email="user@example.com")
 
     mock_get_sub.return_value = sub
@@ -92,12 +93,11 @@ def test_send_single_subscription_reminder_sends_email(
     mock_send_email.assert_called_once_with(
         user_email="user@example.com",
         subscription_name="Netflix",
-        next_payment_date="2025-11-10",
+        next_payment_date=date(2025, 11, 10)
     )
-
     mock_create_log.assert_called_once_with(
         data={"message": "Reminder sent for Netflix", "success": True},
-        sub_id=1,
+        sub_id=1
     )
 
 def test_send_single_subscription_reminder_skips_when_sub_not_found(
@@ -113,7 +113,7 @@ def test_send_single_subscription_reminder_skips_when_sub_not_found(
     mock_send_email.assert_not_called()
     mock_create_log.assert_not_called()
 
-def test_send_single_subscription_reminder_handles_email_failure(
+def test_send_single_subscription_reminder_handles_permanent_email_failure(
         app, 
         mocker, 
         mocked_dependencies_2
@@ -123,20 +123,40 @@ def test_send_single_subscription_reminder_handles_email_failure(
     sub = mocker.Mock()
     sub.id = 1
     sub.name = "Spotify"
-    sub.next_payment_date = "2025-12-01"
+    sub.next_payment_date = date(2025, 12, 1)
     sub.user = mocker.Mock(email="user@example.com")
     
     mock_get_sub.return_value = sub
-    mock_send_email.side_effect = Exception("Email sending failed")
+    mock_send_email.side_effect = EmailPermanentError("Invalid email")
 
     reminder_tasks.send_single_subscription_reminder(sub_id=1, app=app)
 
     mock_send_email.assert_called_once_with(
         user_email="user@example.com",
         subscription_name="Spotify",
-        next_payment_date="2025-12-01",
+        next_payment_date=date(2025, 12, 1)
     )
     mock_create_log.assert_called_once_with(
-        data={"message": "Email sending failed", "success": False},
-        sub_id=1,
+        data={"message": "Invalid email", "success": False},
+        sub_id=1
     )
+
+def test_send_single_subscription_reminder_handles_temporary_email_failure(
+        app, 
+        mocker, 
+        mocked_dependencies_2
+    ):
+    mock_get_sub, mock_send_email, mock_create_log = mocked_dependencies_2
+
+    sub = mocker.Mock()
+    sub.id = 1
+    sub.name = "Spotify"
+    sub.next_payment_date = date(2025, 12, 1)
+    sub.user = mocker.Mock(email="user@example.com")
+    
+    mock_get_sub.return_value = sub
+    mock_send_email.side_effect = EmailTemporaryError("Timeout occurred")
+
+    with pytest.raises(EmailTemporaryError):
+        reminder_tasks.send_single_subscription_reminder(sub_id=1, app=app)
+    mock_create_log.assert_not_called()

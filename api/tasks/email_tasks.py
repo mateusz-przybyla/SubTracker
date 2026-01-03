@@ -30,7 +30,7 @@ def send_mailgun_message(to: str, subject: str, body: str, html: str) -> None:
         timeout=(5, 10),
     )
     except requests.RequestException as e:
-        raise EmailTemporaryError("Network error while sending email.") from e
+        raise EmailTemporaryError("Network error while sending email") from e
     
     if response.ok:
         return
@@ -71,7 +71,7 @@ def send_user_registration_email(email: str, username: str) -> None:
         )
         raise
 
-def send_email_reminder(user_email: str, subscription_name: str, next_payment_date: date) -> requests.Response:
+def send_email_reminder(user_email: str, subscription_name: str, next_payment_date: date) -> None:
     """Send an email reminder about an upcoming subscription payment."""
     formatted_date = next_payment_date.strftime("%Y-%m-%d")
 
@@ -89,7 +89,7 @@ def send_email_reminder(user_email: str, subscription_name: str, next_payment_da
         html=html,
     )
 
-def send_monthly_summary_email(user_email: str, summary: dict[str, Any]) -> requests.Response:
+def send_monthly_summary_email(user_email: str, summary: dict[str, Any]) -> None:
     """Send a monthly subscription spending summary email to the user."""
     body = f"Your spending summary for {summary['month']} is {summary['total_spent']}."
     html = render_template(

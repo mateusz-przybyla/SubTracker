@@ -50,6 +50,7 @@ def test_check_upcoming_payments_enqueues_job_per_subscription(
 
     job = mock_reminder_queue.jobs[0]
     assert job.func_name.endswith("send_single_subscription_reminder")
+    assert job.args[0] == sub1.id or job.args[0] == sub2.id
 
 def test_send_single_subscription_reminder_sends_email_and_logs_success(
     app,
