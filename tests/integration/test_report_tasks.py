@@ -92,27 +92,3 @@ def test_send_single_user_monthly_report_skips_when_no_subscriptions(
     )
 
     mock_send.assert_not_called()
-
-def test_send_single_user_monthly_report_does_not_crash_on_email_error(
-    app,
-    user_factory,
-    subscription_factory,
-    mocker
-):
-    user = user_factory(email="user@example.com")
-    subscription_factory(
-        user_id=user.id,
-        next_payment_date=date(2025, 11, 10)
-    )
-
-    mocker.patch(
-        "api.tasks.email_tasks.send_monthly_summary_email",
-        side_effect=Exception("Email sending failed")
-    )
-
-    # Act + Assert: Should not raise
-    report_tasks.send_single_user_monthly_report(
-        user_id=user.id,
-        month="2025-11",
-        app=app
-    )

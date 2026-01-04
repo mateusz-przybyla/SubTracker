@@ -48,8 +48,8 @@ def check_upcoming_payments(app: Flask | None = None) -> None:
                 )
             except RedisError as e:
                 current_app.logger.error(
-                    "Failed to enqueue reminder email task",
-                    extra={"error": str(e), "sub_id": sub.id},
+                    "Failed to enqueue reminder task",
+                    extra={"error": str(e), "sub_id": sub.id}
                 )
 
 def send_single_subscription_reminder(sub_id: int, app: Flask | None = None) -> None:
@@ -86,7 +86,7 @@ def send_single_subscription_reminder(sub_id: int, app: Flask | None = None) -> 
                 subscription_name=sub.name,
                 next_payment_date=sub.next_payment_date,
             )
-        except EmailTemporaryError as e:
+        except EmailTemporaryError:
             raise 
         except EmailPermanentError as e:
             try:

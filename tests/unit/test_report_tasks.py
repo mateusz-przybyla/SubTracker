@@ -1,6 +1,8 @@
 import pytest
+from redis import RedisError
 
 from api.tasks import report_tasks
+from api.exceptions import EmailPermanentError, EmailTemporaryError
 
 @pytest.fixture
 def mocked_dependencies_1(mocker):
@@ -82,7 +84,7 @@ def test_send_single_user_monthly_report_sends_email(
 
     mock_summary.return_value = {
         "total_spent": 120,
-        "by_category": {"Streaming": 120},
+        "by_category": {"Streaming": 120}
     }
 
     mock_get_user.return_value = mocker.Mock(
@@ -93,7 +95,7 @@ def test_send_single_user_monthly_report_sends_email(
 
     mock_send_email.assert_called_once_with(
         user_email="test@example.com",
-        summary=mock_summary.return_value,
+        summary=mock_summary.return_value
     )
 
 def test_send_single_user_monthly_report_skips_when_no_spending(
@@ -103,7 +105,7 @@ def test_send_single_user_monthly_report_skips_when_no_spending(
 
     mock_summary.return_value = {
         "total_spent": 0,
-        "by_category": {},
+        "by_category": {}
     }
 
     report_tasks.send_single_user_monthly_report(
@@ -114,7 +116,7 @@ def test_send_single_user_monthly_report_skips_when_no_spending(
     mock_send_email.assert_not_called()
     mock_get_user.assert_not_called()
 
-def test_send_single_user_monthly_report_handles_email_failure(
+def test_send_single_user_monthly_report_handles_permanent_email_failure(
     mocker,
     mocked_dependencies_2
 ):
@@ -122,17 +124,55 @@ def test_send_single_user_monthly_report_handles_email_failure(
 
     mock_summary.return_value = {
         "total_spent": 30,
-        "by_category": {},
+        "by_category": {}
     }
 
     mock_get_user.return_value = mocker.Mock(
         email="fail@example.com"
     )
 
-    mock_send_email.side_effect = Exception("Email sending failed")
+    mock_send_email.side_effect = EmailPermanentError("Invalid email")
 
     # Act + Assert: Should not raise
     report_tasks.send_single_user_monthly_report(
         user_id=7,
         month="2025-11"
     )
+
+def test_send_single_user_monthly_report_handles_temporary_email_failure(
+    mocker,
+    mocked_dependencies_2
+):
+    mock_summary, mock_get_user, mock_send_email = mocked_dependencies_2
+
+    mock_summary.return_value = {
+        "total_spent": 30,
+        "by_category": {}
+    }
+
+    mock_get_user.return_value = mocker.Mock(
+        email="fail@example.com"
+    )
+
+    mock_send_email.side_effect = EmailTemporaryError("Timeout occurred")
+
+    with pytest.raises(EmailTemporaryError):
+        report_tasks.send_single_user_monthly_report(
+            user_id=7,
+            month="2025-11"
+        )
+
+def test_generate_monthly_report_handles_redis_error(
+    app,
+    mocker,
+    mocked_dependencies_1
+):
+    mock_users, mock_queue, _ = mocked_dependencies_1
+
+    user = mocker.Mock(id=1)
+    mock_users.return_value = [user]
+
+    mock_queue.enqueue.side_effect = RedisError("Redis down")
+
+    # Act: should NOT raise
+    report_tasks.generate_monthly_report(app=app)

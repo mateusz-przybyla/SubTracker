@@ -15,11 +15,11 @@ Includes JWT authentication, MySQL, Redis, background jobs with RQ, scheduled ta
 - [Architecture Overview](#architecture-overview)
 - [Endpoints](#endpoints)
     - [Auth](#auth)
-    - [User management](#user-management)
     - [Subscriptions](#subscriptions)
     - [Reminders](#reminders)
     - [Reminder logs](#reminder-logs)
     - [Stats](#stats)
+    - [Developer endpoints](#developer-endpoints-optional)
 - [Validation and Errors](#validation-and-errors)
 - [Testing](#testing)
 - [Postman Collection](#postman-collection)
@@ -40,7 +40,7 @@ Includes JWT authentication, MySQL, Redis, background jobs with RQ, scheduled ta
 - Environment configuration via `.env` and `.flaskenv`
 - Docker Compose including API, DB, Redis, workers & scheduler
 - Unit, service and integration tests with **pytest**
-- Test coverage: **92%**
+- Test coverage: **89%**
 - Postman collection with all endpoints and variables
 
 ---
@@ -166,14 +166,14 @@ The system uses three isolated queues, each processed by a dedicated worker cont
 
 #### Workers
 
-- **Email Worker** (`rq_worker_emails`)
+- **Email Worker** (`rq_worker_emails`)\
 Sends transactional emails (welcome, reminders, monthly summaries).
 
-- **Reminder Worker** (`rq_worker_reminders`)
+- **Reminder Worker** (`rq_worker_reminders`)\
 Executes reminder-related tasks and processes one reminder job per subscription,
 sending emails and creating reminder logs.
 
-- **Report Worker** (`rq_worker_reports`)
+- **Report Worker** (`rq_worker_reports`)\
 Processes monthly report jobs, generating and emailing summaries per user.
 
 ### Scheduler (Recurring Jobs)
@@ -198,14 +198,14 @@ Registered jobs:
 
 Tasks encapsulate asynchronous business logic executed by RQ workers:
 
-- **Email Task** (`send_user_registration_email`, `send_email_reminder`, `send_monthly_summary_email`)
+- **Email Task** (`send_user_registration_email`, `send_email_reminder`, `send_monthly_summary_email`)\
 Responsible only for sending emails via Mailgun.
 
-- **Reminder Task** (`check_upcoming_payments`, `send_single_subscription_reminder`)
+- **Reminder Task** (`check_upcoming_payments`, `send_single_subscription_reminder`)\
 Identify subscriptions with upcoming payments and enqueue **one reminder job per subscription**.
 Each job sends a reminder email and persists reminder logs.
 
-- **Report Task** (`send_monthly_user_reports`, `send_single_user_monthly_report`)
+- **Report Task** (`send_monthly_user_reports`, `send_single_user_monthly_report`)\
 Generate monthly spending summaries and enqueue **one report job per user**, ensuring isolated
 processing and retryability.
 
@@ -287,7 +287,7 @@ Test structure:
 - `tests/service/`
 - `tests/integration/`
 
-Coverage: **92%**
+Coverage: **89%**
 
 ---
 

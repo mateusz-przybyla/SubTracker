@@ -82,7 +82,7 @@ def send_email_reminder(user_email: str, subscription_name: str, next_payment_da
         next_payment_date=formatted_date,
     )
 
-    return send_mailgun_message(
+    send_mailgun_message(
         to=user_email,
         subject=f"Upcoming payment reminder: {subscription_name}",
         body=body,
@@ -99,7 +99,7 @@ def send_monthly_summary_email(user_email: str, summary: dict[str, Any]) -> None
         by_category=summary['by_category'],
     )
 
-    return send_mailgun_message(
+    send_mailgun_message(
         to=user_email,
         subject=f"Your subscription summary for {summary['month']}",
         body=body,

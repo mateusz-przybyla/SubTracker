@@ -1,5 +1,6 @@
 import pytest
 from datetime import date
+from redis import RedisError
 
 from api.tasks import reminder_tasks
 from api.exceptions import SubscriptionNotFoundError, EmailTemporaryError, EmailPermanentError
@@ -160,3 +161,20 @@ def test_send_single_subscription_reminder_handles_temporary_email_failure(
     with pytest.raises(EmailTemporaryError):
         reminder_tasks.send_single_subscription_reminder(sub_id=1, app=app)
     mock_create_log.assert_not_called()
+
+def test_check_upcoming_payments_handles_redis_error(
+    app,
+    mocker,
+    mocked_dependencies_1
+):
+    mock_get_subs, mock_reminder_queue = mocked_dependencies_1
+
+    sub1 = mocker.Mock(id=1)
+    sub2 = mocker.Mock(id=2)
+
+    mock_get_subs.return_value = [sub1, sub2]
+
+    mock_reminder_queue.enqueue.side_effect = RedisError("Redis down")
+
+    # Act: should NOT raise
+    reminder_tasks.check_upcoming_payments(app=app)

@@ -1,3 +1,7 @@
+# User  exceptions
+
+class UserNotFoundError(Exception): pass
+
 # ReminderLog exceptions
 
 class ReminderLogCreateError(Exception): pass
