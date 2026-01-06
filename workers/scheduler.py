@@ -25,25 +25,19 @@ def register_reminder_job() -> None:
     print("Reminder job scheduled.")
 
 def register_report_job() -> None:
-    """Register the monthly report job for spending summaries."""
-    existing_job = [job for job in scheduler.get_jobs() if job.id == "monthly_report_job"]
-    if existing_job:
+    """
+    Register the monthly report job for spending summaries.
+    """
+    if scheduler.connection.exists("rq:scheduler:job:monthly_report_job"):
         print("Monthly report job already scheduled.")
         return
 
-    now = datetime.now(timezone.utc)
-    if now.month == 12:
-        first_of_next_month = datetime(year=now.year + 1, month=1, day=1, tzinfo=timezone.utc)
-    else:
-        first_of_next_month = datetime(year=now.year, month=now.month + 1, day=1, tzinfo=timezone.utc)
-
-    scheduler.schedule(
-        scheduled_time=first_of_next_month,
+    scheduler.cron(
+        cron_string="0 0 1 * *",
         func=report_tasks.generate_monthly_report,
-        interval=2592000,  # ~30 days in seconds
-        repeat=None,
         id="monthly_report_job",
-        queue_name=get_report_queue().name
+        queue_name=get_report_queue().name,
+        use_local_timezone=True
     )
     print("Monthly report job scheduled.")
 
@@ -53,7 +47,9 @@ def register_jobs() -> None:
     register_report_job()
 
 def debug_list_jobs() -> None:
-    """Print all jobs currently registered in the scheduler for debugging purposes."""
+    """
+    Print all jobs currently registered in the scheduler for debugging purposes.
+    """
     jobs = list(scheduler.get_jobs())
 
     print(f"Found {len(jobs)} job(s):")
@@ -67,4 +63,3 @@ def debug_list_jobs() -> None:
 
 if __name__ == "__main__":
     register_jobs()
-    debug_list_jobs()

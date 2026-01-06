@@ -1,6 +1,7 @@
 import workers.scheduler as sched
 
 from api.tasks import reminder_tasks, report_tasks
+from api.infra.queues import get_report_queue
 
 def test_register_reminder_job_adds_job(mocker):
     mocker.patch.object(sched.scheduler, "get_jobs", return_value=[])
@@ -28,28 +29,44 @@ def test_register_reminder_job_skips_if_exists(mocker):
     schedule_mock.assert_not_called()
 
 def test_register_report_job_adds_job(mocker):
-    mocker.patch.object(sched.scheduler, "get_jobs", return_value=[])
-    schedule_mock = mocker.patch.object(sched.scheduler, "schedule")
+    # arrange: Redis says - job does NOT exist
+    exists_mock = mocker.patch.object(
+        sched.scheduler.connection,
+        "exists",
+        return_value=False
+    )
+    cron_mock = mocker.patch.object(sched.scheduler, "cron")
 
+    # act
     sched.register_report_job()
 
-    schedule_mock.assert_called_once()
+    # assert
+    exists_mock.assert_called_once_with("rq:scheduler:job:monthly_report_job")
+    cron_mock.assert_called_once()
 
-    _, kwargs = schedule_mock.call_args
+    _, kwargs = cron_mock.call_args
 
     assert kwargs['id'] == "monthly_report_job"
     assert kwargs['func'] == report_tasks.generate_monthly_report
-    assert kwargs['queue_name'] == "reports"
-    assert kwargs['interval'] == 2592000
+    assert kwargs['queue_name'] == get_report_queue().name
+    assert kwargs['cron_string'] == "0 0 1 * *"
+    assert kwargs['use_local_timezone'] is True
 
 def test_register_report_job_skips_if_exists(mocker):
-    fake_job = mocker.Mock(id="monthly_report_job")
-    mocker.patch.object(sched.scheduler, "get_jobs", return_value=[fake_job])
-    schedule_mock = mocker.patch.object(sched.scheduler, "schedule")
+    # arrange: Redis says - job EXISTS
+    exists_mock = mocker.patch.object(
+        sched.scheduler.connection,
+        "exists",
+        return_value=True
+    )
+    cron_mock = mocker.patch.object(sched.scheduler, "cron")
 
+    # act
     sched.register_report_job()
 
-    schedule_mock.assert_not_called()
+    # assert
+    exists_mock.assert_called_once_with("rq:scheduler:job:monthly_report_job")
+    cron_mock.assert_not_called()
 
 def test_register_jobs_calls_both(mocker):
     reminder_mock = mocker.patch.object(sched, "register_reminder_job")

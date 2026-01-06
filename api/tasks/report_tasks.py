@@ -1,6 +1,7 @@
 from flask import Flask, current_app
 from rq import Retry
 from redis import RedisError
+from datetime import datetime, timezone
 
 from api.services import subscription as subscription_service
 from api.services import user as user_service
@@ -35,7 +36,7 @@ def generate_monthly_report(app: Flask | None = None) -> None:
         app = create_app()
 
     with app.app_context():
-        month = date_helpers.get_previous_month()
+        month = date_helpers.get_previous_month(datetime.now(timezone.utc))
         users = user_service.get_all_users()
 
         for user in users:
@@ -44,7 +45,8 @@ def generate_monthly_report(app: Flask | None = None) -> None:
                     send_single_user_monthly_report,
                     user.id,
                     month,
-                    retry=Retry(max=3, interval=[30, 60, 120])
+                    retry=Retry(max=3, interval=[30, 60, 120]),
+                    job_timeout=60
                 )
             except RedisError as e:
                 current_app.logger.error(

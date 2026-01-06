@@ -190,9 +190,9 @@ Registered jobs:
     - Processed by: **Reminder Worker**
     - Purpose: Enqueues reminder jobs (one per subscription) for upcoming payments.
 - `generate_monthly_report`
-    - Runs: **every 30 days**
+    - Runs: **on the 1st day of each month at 00:00 (cron)**
     - Processed by: **Report Worker**
-    - Purpose: Enqueues monthly report jobs (one per user).
+    - Purpose: Enqueues monthly report jobs (one per user) for the previous month..
 
 ### Task Layer
 
