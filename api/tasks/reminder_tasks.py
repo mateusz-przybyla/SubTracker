@@ -44,7 +44,8 @@ def check_upcoming_payments(app: Flask | None = None) -> None:
                 get_reminder_queue().enqueue(
                     send_single_subscription_reminder,
                     sub.id,
-                    retry=Retry(max=3, interval=[30, 60, 120])
+                    retry=Retry(max=3, interval=[30, 60, 120]),
+                    job_timeout=60
                 )
             except RedisError as e:
                 current_app.logger.error(

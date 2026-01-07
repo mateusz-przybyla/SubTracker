@@ -1,4 +1,3 @@
-from datetime import datetime, timezone, timedelta
 from rq_scheduler import Scheduler
 
 from api.tasks import reminder_tasks, report_tasks
@@ -8,19 +7,19 @@ from api.infra.queues import get_reminder_queue, get_report_queue
 scheduler = Scheduler(connection=get_redis())
 
 def register_reminder_job() -> None:
-    """Register the daily reminder job for upcoming subscription payments."""
-    existing_job = [job for job in scheduler.get_jobs() if job.id == "subscription_payment_reminder_job"]
-    if existing_job:
+    """
+    Register the daily reminder job for upcoming subscription payments.
+    """
+    if scheduler.connection.exists("rq:scheduler:job:subscription_payment_reminder_job"):
         print("Reminder job already scheduled.")
         return
 
-    scheduler.schedule(
-        scheduled_time=datetime.now(timezone.utc) + timedelta(seconds=10),
+    scheduler.cron(
+        cron_string="0 3 * * *",
         func=reminder_tasks.check_upcoming_payments,
-        interval=86400, # 24h in seconds
-        repeat=None,
         id="subscription_payment_reminder_job",
-        queue_name=get_reminder_queue().name
+        queue_name=get_reminder_queue().name,
+        use_local_timezone=True
     )
     print("Reminder job scheduled.")
 
@@ -43,6 +42,7 @@ def register_report_job() -> None:
 
 def register_jobs() -> None:
     print("Registering scheduled jobs...")
+
     register_reminder_job()
     register_report_job()
 

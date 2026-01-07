@@ -186,9 +186,9 @@ Recurring tasks are managed using **RQ Scheduler**, running in its own container
 Registered jobs:
 
 - `check_upcoming_payments`
-    - Runs: **every 24 hours**
+    - Runs: **once per day at a fixed time (cron)**
     - Processed by: **Reminder Worker**
-    - Purpose: Enqueues reminder jobs (one per subscription) for upcoming payments.
+    - Purpose: Enqueues reminder jobs (one per subscription) for upcoming payments due in 1 or 7 days.
 - `generate_monthly_report`
     - Runs: **on the 1st day of each month at 00:00 (cron)**
     - Processed by: **Report Worker**

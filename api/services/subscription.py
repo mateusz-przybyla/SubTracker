@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import datetime, timezone, timedelta, date
 from sqlalchemy.exc import SQLAlchemyError
 from typing import List
 from decimal import Decimal
@@ -82,7 +82,7 @@ def get_subscriptions_due_in(days_list: list[int]) -> List[SubscriptionModel]:
     Returns:
         List[SubscriptionModel]: Subscriptions matching the given offsets.
     """
-    today = date.today()
+    today = datetime.now(timezone.utc).date()
     target_dates = [today + timedelta(days=d) for d in days_list]
 
     return (
@@ -111,7 +111,7 @@ def get_user_upcoming_subscriptions(
     if days_list is None:
         days_list = [1, 7]
 
-    today = date.today()
+    today = datetime.now(timezone.utc).date()
     target_dates = [today + timedelta(days=d) for d in days_list]
 
     return (
@@ -136,7 +136,7 @@ def get_user_upcoming_within(user_id: int, days: int) -> List[SubscriptionModel]
         List[SubscriptionModel]: List of SubscriptionModel objects representing
         upcoming payments for the user within the specified time window.
     """
-    today = date.today()
+    today = datetime.now(timezone.utc).date()
     end_date = today + timedelta(days=days)
 
     return (
