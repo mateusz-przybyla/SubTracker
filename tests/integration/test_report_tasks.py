@@ -22,7 +22,7 @@ def mock_report_queue(mocker, report_queue):
     return report_queue
 
 def test_generate_monthly_report_enqueues_job_per_user(
-    app,
+    app_ctx,
     mock_report_queue,
     user_factory
 ):
@@ -43,7 +43,7 @@ def test_generate_monthly_report_enqueues_job_per_user(
     user_factory(email="user1@example.com")
     user_factory(email="user2@example.com")
 
-    report_tasks.generate_monthly_report(app=app)
+    report_tasks.generate_monthly_report()
 
     assert mock_report_queue.count == 2
 
@@ -51,7 +51,7 @@ def test_generate_monthly_report_enqueues_job_per_user(
     assert job.func_name.endswith("send_single_user_monthly_report")
 
 def test_send_single_user_monthly_report_sends_email(
-    app,
+    app_ctx,
     user_factory,
     subscription_factory,
     mocker
@@ -68,14 +68,13 @@ def test_send_single_user_monthly_report_sends_email(
 
     report_tasks.send_single_user_monthly_report(
         user_id=user.id,
-        month="2025-11",
-        app=app
+        month="2025-11"
     )
 
     mock_send.assert_called_once()
 
 def test_send_single_user_monthly_report_skips_when_no_subscriptions(
-    app,
+    app_ctx,
     user_factory,
     mocker
 ):
@@ -87,8 +86,7 @@ def test_send_single_user_monthly_report_skips_when_no_subscriptions(
 
     report_tasks.send_single_user_monthly_report(
         user_id=user.id,
-        month="2025-11",
-        app=app
+        month="2025-11"
     )
 
     mock_send.assert_not_called()

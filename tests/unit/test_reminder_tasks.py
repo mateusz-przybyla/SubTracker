@@ -39,7 +39,7 @@ def mocked_dependencies_2(mocker):
     return mock_get_sub, mock_send_email, mock_create_log
 
 def test_check_upcoming_payments_enqueues_job_per_subscription(
-        app, 
+        app_ctx,
         mocker, 
         mocked_dependencies_1
     ):  
@@ -50,12 +50,12 @@ def test_check_upcoming_payments_enqueues_job_per_subscription(
 
     mock_get_subs.return_value = [sub1, sub2]
 
-    reminder_tasks.check_upcoming_payments(app=app)
+    reminder_tasks.check_upcoming_payments()
 
     assert mock_reminder_queue.enqueue.call_count == 2
 
 def test_check_upcoming_payments_enqueue_arguments(
-        app, 
+        app_ctx,
         mocker, 
         mocked_dependencies_1
     ):
@@ -65,7 +65,7 @@ def test_check_upcoming_payments_enqueue_arguments(
 
     mock_get_subs.return_value = [sub]
 
-    reminder_tasks.check_upcoming_payments(app=app)
+    reminder_tasks.check_upcoming_payments()
 
     mock_reminder_queue.enqueue.assert_called_once()
     args, kwargs = mock_reminder_queue.enqueue.call_args
@@ -74,8 +74,25 @@ def test_check_upcoming_payments_enqueue_arguments(
     assert args[1] == 1
     assert kwargs['retry'] is not None
 
+def test_check_upcoming_payments_handles_redis_error(
+    app_ctx,
+    mocker,
+    mocked_dependencies_1
+):
+    mock_get_subs, mock_reminder_queue = mocked_dependencies_1
+
+    sub1 = mocker.Mock(id=1)
+    sub2 = mocker.Mock(id=2)
+
+    mock_get_subs.return_value = [sub1, sub2]
+
+    mock_reminder_queue.enqueue.side_effect = RedisError("Redis down")
+
+    # Act: should NOT raise
+    reminder_tasks.check_upcoming_payments()
+
 def test_send_single_subscription_reminder_sends_email(
-        app, 
+        app_ctx,
         mocker, 
         mocked_dependencies_2
     ):
@@ -89,7 +106,7 @@ def test_send_single_subscription_reminder_sends_email(
 
     mock_get_sub.return_value = sub
 
-    reminder_tasks.send_single_subscription_reminder(sub_id=1, app=app)
+    reminder_tasks.send_single_subscription_reminder(sub_id=1)
 
     mock_send_email.assert_called_once_with(
         user_email="user@example.com",
@@ -102,20 +119,20 @@ def test_send_single_subscription_reminder_sends_email(
     )
 
 def test_send_single_subscription_reminder_skips_when_sub_not_found(
-        app, 
+        app_ctx,
         mocked_dependencies_2
     ):
     mock_get_sub, mock_send_email, mock_create_log = mocked_dependencies_2
 
     mock_get_sub.side_effect = SubscriptionNotFoundError()
 
-    reminder_tasks.send_single_subscription_reminder(sub_id=999, app=app)
+    reminder_tasks.send_single_subscription_reminder(sub_id=999)
 
     mock_send_email.assert_not_called()
     mock_create_log.assert_not_called()
 
 def test_send_single_subscription_reminder_handles_permanent_email_failure(
-        app, 
+        app_ctx,
         mocker, 
         mocked_dependencies_2
     ):
@@ -130,7 +147,7 @@ def test_send_single_subscription_reminder_handles_permanent_email_failure(
     mock_get_sub.return_value = sub
     mock_send_email.side_effect = EmailPermanentError("Invalid email")
 
-    reminder_tasks.send_single_subscription_reminder(sub_id=1, app=app)
+    reminder_tasks.send_single_subscription_reminder(sub_id=1)
 
     mock_send_email.assert_called_once_with(
         user_email="user@example.com",
@@ -143,7 +160,7 @@ def test_send_single_subscription_reminder_handles_permanent_email_failure(
     )
 
 def test_send_single_subscription_reminder_handles_temporary_email_failure(
-        app, 
+        app_ctx,
         mocker, 
         mocked_dependencies_2
     ):
@@ -159,22 +176,5 @@ def test_send_single_subscription_reminder_handles_temporary_email_failure(
     mock_send_email.side_effect = EmailTemporaryError("Timeout occurred")
 
     with pytest.raises(EmailTemporaryError):
-        reminder_tasks.send_single_subscription_reminder(sub_id=1, app=app)
+        reminder_tasks.send_single_subscription_reminder(sub_id=1)
     mock_create_log.assert_not_called()
-
-def test_check_upcoming_payments_handles_redis_error(
-    app,
-    mocker,
-    mocked_dependencies_1
-):
-    mock_get_subs, mock_reminder_queue = mocked_dependencies_1
-
-    sub1 = mocker.Mock(id=1)
-    sub2 = mocker.Mock(id=2)
-
-    mock_get_subs.return_value = [sub1, sub2]
-
-    mock_reminder_queue.enqueue.side_effect = RedisError("Redis down")
-
-    # Act: should NOT raise
-    reminder_tasks.check_upcoming_payments(app=app)

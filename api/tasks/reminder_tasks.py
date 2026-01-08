@@ -13,45 +13,33 @@ from api.exceptions import (
     EmailPermanentError
 )
 
-def check_upcoming_payments(app: Flask | None = None) -> None:
+def check_upcoming_payments() -> None:
     """
     Enqueue reminder jobs for subscriptions with upcoming payments.
 
     This task retrieves subscriptions with payments due soon (e.g. in 1 or 7 days)
     and enqueues a separate background job per subscription to handle email
     sending and logging. The task itself does not send emails directly.
-
-    Args:
-        app (Flask | None): Optional Flask application instance. If not provided,
-            the application will be created via `create_app()`.
-
-    Returns:
-        None
     """
-    if app is None:
-        from api import create_app
-        app = create_app()
+    subs = subscription_service.get_subscriptions_due_in([1, 7])
 
-    with app.app_context():
-        subs = subscription_service.get_subscriptions_due_in([1, 7])
+    if not subs:
+        current_app.logger.info("No upcoming payments found")
+        return
 
-        if not subs:
-            current_app.logger.info("No upcoming payments found")
-            return
-
-        for sub in subs:
-            try:
-                get_reminder_queue().enqueue(
-                    send_single_subscription_reminder,
-                    sub.id,
-                    retry=Retry(max=3, interval=[30, 60, 120]),
-                    job_timeout=60
-                )
-            except RedisError as e:
-                current_app.logger.error(
-                    "Failed to enqueue reminder task",
-                    extra={"error": str(e), "sub_id": sub.id}
-                )
+    for sub in subs:
+        try:
+            get_reminder_queue().enqueue(
+                send_single_subscription_reminder,
+                sub.id,
+                retry=Retry(max=3, interval=[30, 60, 120]),
+                job_timeout=60
+            )
+        except RedisError as e:
+            current_app.logger.error(
+                "Failed to enqueue reminder task",
+                extra={"error": str(e), "sub_id": sub.id}
+            )
 
 def send_single_subscription_reminder(sub_id: int, app: Flask | None = None) -> None:
     """
@@ -62,52 +50,42 @@ def send_single_subscription_reminder(sub_id: int, app: Flask | None = None) -> 
 
     Args:
         sub_id (int): Identifier of the subscription.
-        app (Flask | None): Optional Flask application instance. If not provided,
-            the application will be created via `create_app()`.
-
-    Returns:
-        None
     """
-    if app is None:
-        from api import create_app
-        app = create_app()
-
-    with app.app_context():
-        try:
-            sub = subscription_service.get_subscription_by_id(sub_id)
-        except SubscriptionNotFoundError:
-            current_app.logger.warning(
-                "Subscription not found for reminder task",
-                extra={"sub_id": sub_id},
-            )
-            return
-        try:
-            email_tasks.send_email_reminder(
-                user_email=sub.user.email,
-                subscription_name=sub.name,
-                next_payment_date=sub.next_payment_date,
-            )
-        except EmailTemporaryError:
-            raise 
-        except EmailPermanentError as e:
-            try:
-                reminder_log_service.create_reminder_log(
-                    data={"message": str(e), "success": False},
-                    sub_id=sub.id,
-                )
-            except ReminderLogCreateError as log_err:
-                current_app.logger.error(
-                    "Failed to log failed reminder",
-                    extra={"sub_id": sub.id, "error": str(log_err)},
-                )
-            return
+    try:
+        sub = subscription_service.get_subscription_by_id(sub_id)
+    except SubscriptionNotFoundError:
+        current_app.logger.warning(
+            "Subscription not found for reminder task",
+            extra={"sub_id": sub_id},
+        )
+        return
+    try:
+        email_tasks.send_email_reminder(
+            user_email=sub.user.email,
+            subscription_name=sub.name,
+            next_payment_date=sub.next_payment_date,
+        )
+    except EmailTemporaryError:
+        raise 
+    except EmailPermanentError as e:
         try:
             reminder_log_service.create_reminder_log(
-                data={"message": f"Reminder sent for {sub.name}", "success": True},
+                data={"message": str(e), "success": False},
                 sub_id=sub.id,
             )
         except ReminderLogCreateError as log_err:
             current_app.logger.error(
-                "Failed to log successful reminder",
-                extra={"error": str(log_err), "sub_id": sub.id},
+                "Failed to log failed reminder",
+                extra={"sub_id": sub.id, "error": str(log_err)},
             )
+        return
+    try:
+        reminder_log_service.create_reminder_log(
+            data={"message": f"Reminder sent for {sub.name}", "success": True},
+            sub_id=sub.id,
+        )
+    except ReminderLogCreateError as log_err:
+        current_app.logger.error(
+            "Failed to log successful reminder",
+            extra={"error": str(log_err), "sub_id": sub.id},
+        )

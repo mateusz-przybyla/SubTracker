@@ -42,7 +42,7 @@ def mocked_dependencies_2(mocker):
     return mock_summary, mock_get_user, mock_send_email
 
 def test_generate_monthly_report_enqueues_job_per_user(
-        app, 
+        app_ctx,
         mocker, 
         mocked_dependencies_1
     ):
@@ -53,12 +53,12 @@ def test_generate_monthly_report_enqueues_job_per_user(
         mocker.Mock(id=2),
     ]
 
-    report_tasks.generate_monthly_report(app=app)
+    report_tasks.generate_monthly_report()
 
     assert mock_queue.enqueue.call_count == 2
 
 def test_generate_monthly_report_enqueue_arguments(
-        app, 
+        app_ctx,
         mocker, 
         mocked_dependencies_1
     ):
@@ -67,7 +67,7 @@ def test_generate_monthly_report_enqueue_arguments(
     user = mocker.Mock(id=42)
     mock_users.return_value = [user]
 
-    report_tasks.generate_monthly_report(app=app)
+    report_tasks.generate_monthly_report()
 
     mock_queue.enqueue.assert_called_once()
     args, _ = mock_queue.enqueue.call_args
@@ -76,7 +76,23 @@ def test_generate_monthly_report_enqueue_arguments(
     assert args[1] == 42
     assert args[2] == "2025-11"
 
+def test_generate_monthly_report_handles_redis_error(
+    app_ctx,
+    mocker,
+    mocked_dependencies_1
+):
+    mock_users, mock_queue, _ = mocked_dependencies_1
+
+    user = mocker.Mock(id=1)
+    mock_users.return_value = [user]
+
+    mock_queue.enqueue.side_effect = RedisError("Redis down")
+
+    # Act: should NOT raise
+    report_tasks.generate_monthly_report()
+
 def test_send_single_user_monthly_report_sends_email(
+    app_ctx,
     mocker,
     mocked_dependencies_2
 ):
@@ -99,6 +115,7 @@ def test_send_single_user_monthly_report_sends_email(
     )
 
 def test_send_single_user_monthly_report_skips_when_no_spending(
+    app_ctx,
     mocked_dependencies_2
 ):
     mock_summary, mock_get_user, mock_send_email = mocked_dependencies_2
@@ -117,6 +134,7 @@ def test_send_single_user_monthly_report_skips_when_no_spending(
     mock_get_user.assert_not_called()
 
 def test_send_single_user_monthly_report_handles_permanent_email_failure(
+    app_ctx,
     mocker,
     mocked_dependencies_2
 ):
@@ -140,6 +158,7 @@ def test_send_single_user_monthly_report_handles_permanent_email_failure(
     )
 
 def test_send_single_user_monthly_report_handles_temporary_email_failure(
+    app_ctx,
     mocker,
     mocked_dependencies_2
 ):
@@ -161,18 +180,3 @@ def test_send_single_user_monthly_report_handles_temporary_email_failure(
             user_id=7,
             month="2025-11"
         )
-
-def test_generate_monthly_report_handles_redis_error(
-    app,
-    mocker,
-    mocked_dependencies_1
-):
-    mock_users, mock_queue, _ = mocked_dependencies_1
-
-    user = mocker.Mock(id=1)
-    mock_users.return_value = [user]
-
-    mock_queue.enqueue.side_effect = RedisError("Redis down")
-
-    # Act: should NOT raise
-    report_tasks.generate_monthly_report(app=app)

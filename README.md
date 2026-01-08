@@ -176,6 +176,9 @@ sending emails and creating reminder logs.
 - **Report Worker** (`rq_worker_reports`)\
 Processes monthly report jobs, generating and emailing summaries per user.
 
+Reminder and Report workers bootstrap the Flask application and execute jobs inside the Flask application context.
+Email worker does not require application context as it does not access the database or Flask services.
+
 ### Scheduler (Recurring Jobs)
 
 Recurring tasks are managed using **RQ Scheduler**, running in its own container:
@@ -208,8 +211,6 @@ Each job sends a reminder email and persists reminder logs.
 - **Report Task** (`send_monthly_user_reports`, `send_single_user_monthly_report`)\
 Generate monthly spending summaries and enqueue **one report job per user**, ensuring isolated
 processing and retryability.
-
-Reminder and Report Tasks executed by workers run inside the Flask application context (`app.app_context()`), allowing access to the database, configuration and service layer.
 
 ---
 

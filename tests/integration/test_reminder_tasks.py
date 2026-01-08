@@ -24,7 +24,7 @@ def mock_reminder_queue(mocker, reminder_queue):
     return reminder_queue
 
 def test_check_upcoming_payments_enqueues_job_per_subscription(
-    app,
+    app_ctx,
     mock_reminder_queue,
     user_factory,
     subscription_factory,
@@ -44,7 +44,7 @@ def test_check_upcoming_payments_enqueues_job_per_subscription(
         return_value=[sub1, sub2]
     )
 
-    reminder_tasks.check_upcoming_payments(app=app)
+    reminder_tasks.check_upcoming_payments()
 
     assert mock_reminder_queue.count == 2
 
@@ -53,7 +53,7 @@ def test_check_upcoming_payments_enqueues_job_per_subscription(
     assert job.args[0] == sub1.id or job.args[0] == sub2.id
 
 def test_send_single_subscription_reminder_sends_email_and_logs_success(
-    app,
+    app_ctx,
     user_factory,
     subscription_factory,
     mocker
@@ -65,10 +65,7 @@ def test_send_single_subscription_reminder_sends_email_and_logs_success(
         "api.tasks.reminder_tasks.email_tasks.send_email_reminder"
     )
 
-    reminder_tasks.send_single_subscription_reminder(
-        sub_id=sub.id,
-        app=app
-    )
+    reminder_tasks.send_single_subscription_reminder(sub_id=sub.id)
 
     mock_send.assert_called_once_with(
         user_email=user.email,
@@ -81,7 +78,7 @@ def test_send_single_subscription_reminder_sends_email_and_logs_success(
     assert logs[0].success is True
 
 def test_send_single_subscription_reminder_skips_when_subscription_not_found(
-    app,
+    app_ctx,
     mocker
 ):
     mocker.patch(
@@ -93,10 +90,7 @@ def test_send_single_subscription_reminder_skips_when_subscription_not_found(
         "api.tasks.reminder_tasks.email_tasks.send_email_reminder"
     )
 
-    reminder_tasks.send_single_subscription_reminder(
-        sub_id=999,
-        app=app
-    )
+    reminder_tasks.send_single_subscription_reminder(sub_id=999)
 
     mock_send.assert_not_called()
     logs = ReminderLogModel.query.all()

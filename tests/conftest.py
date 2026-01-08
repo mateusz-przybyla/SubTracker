@@ -100,3 +100,8 @@ def subscription_factory(db_session):
         db_session.commit()
         return subscription
     return _factory
+
+@pytest.fixture
+def app_ctx(app):
+    with app.app_context():
+        yield
