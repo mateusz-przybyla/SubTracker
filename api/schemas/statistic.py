@@ -1,13 +1,14 @@
-from marshmallow import Schema, fields, validate, ValidationError
+import re
+from marshmallow import Schema, fields, ValidationError
 
 def validate_month(value: str) -> None:
-    # Check format YYYY-MM
-    if not validate.Regexp(r"^\d{4}-\d{2}$")(value):
+    if not re.match(r"^\d{4}-\d{2}$", value):
         raise ValidationError("Month must be in YYYY-MM format.")
-    # Check the scope of the month
+
     year, month = value.split("-")
     month_int = int(month)
-    if month_int < 1 or month_int > 12:
+
+    if not 1 <= month_int <= 12:
         raise ValidationError("Month must be between 01 and 12.")
 
 class StatsSummaryQueryArgsSchema(Schema):
@@ -17,11 +18,11 @@ class StatsSummaryQueryArgsSchema(Schema):
         metadata={"description": "Month in YYYY-MM format (e.g. 2025-10)"}
     )
 
-class StatsSummarySchema(Schema):
-    month = fields.String(required=True, metadata={"description": "Month in YYYY-MM format"})
-    total_spent = fields.Float(required=True, metadata={"description": "Total amount spent in the month"})
+class StatsSummaryResponseSchema(Schema):
+    month = fields.String(dump_only=True)
+    total_spent = fields.Decimal(as_string=True, dump_only=True)
     by_category = fields.Dict(
         keys=fields.String(),
-        values=fields.Float(),
-        metadata={"description": "Breakdown of spending by category"}
+        values=fields.Decimal(as_string=True),
+        dump_only=True
     )

@@ -36,8 +36,16 @@ def test_check_upcoming_payments_enqueues_job_per_subscription(
     """
     user = user_factory(email="user@example.com")
 
-    sub1 = subscription_factory(user.id, date(2025, 11, 10), name="Hulu")
-    sub2 = subscription_factory(user.id, date(2025, 11, 11), name="Disney+")
+    sub1 = subscription_factory(
+        user_id=user.id, 
+        next_payment_date=date(2025, 11, 10), 
+        name="Hulu"
+    )
+    sub2 = subscription_factory(
+        user_id=user.id, 
+        next_payment_date=date(2025, 11, 11), 
+        name="Disney+"
+    )
 
     mocker.patch(
         "api.tasks.reminder_tasks.subscription_service.get_subscriptions_due_in",
@@ -59,7 +67,10 @@ def test_send_single_subscription_reminder_sends_email_and_logs_success(
     mocker
 ):
     user = user_factory(email="user@example.com")
-    sub = subscription_factory(user.id, date(2025, 11, 10))
+    sub = subscription_factory(
+        user_id=user.id, 
+        next_payment_date=date(2025, 11, 10)
+    )
 
     mock_send = mocker.patch(
         "api.tasks.reminder_tasks.email_tasks.send_email_reminder"

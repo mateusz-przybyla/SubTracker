@@ -3,4 +3,4 @@ from api.schemas.subscription import SubscriptionSchema, SubscriptionUpdateSchem
 from api.schemas.reminder_log import ReminderLogResponseSchema
 from api.schemas.reminder import UpcomingQueryArgsSchema
 from api.schemas.test import ReminderSendTestSchema, StatsSendTestSchema
-from api.schemas.statistic import StatsSummaryQueryArgsSchema, StatsSummarySchema
+from api.schemas.statistic import StatsSummaryQueryArgsSchema, StatsSummaryResponseSchema

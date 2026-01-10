@@ -30,7 +30,7 @@ def test_create_subscription_success(sample_user):
 
 def test_create_subscription_duplicate_name(sample_user, sample_subscription):
     data = {
-        "name": "Netflix",
+        "name": sample_subscription.name,
         "price": Decimal("25.00"),
         "billing_cycle": BillingCycleEnum.monthly,
         "next_payment_date": date(2025, 3, 1),
@@ -137,40 +137,40 @@ def test_get_subscriptions_due_in_filters_by_exact_days_list(db_session, sample_
         SubscriptionModel(
             user_id=sample_user.id,
             name="Due Tomorrow",
-            price=19.99,
-            billing_cycle="monthly",
+            price=Decimal("19.99"),
+            billing_cycle=BillingCycleEnum.monthly,
             next_payment_date=today + timedelta(days=1),
             category="music"
         ),
         SubscriptionModel(
             user_id=sample_user.id + 3,  # Different user
             name="Due Tomorrow",
-            price=12.00,
-            billing_cycle="monthly",
+            price=Decimal("12.00"),
+            billing_cycle=BillingCycleEnum.monthly,
             next_payment_date=today + timedelta(days=1),
             category="news"
         ),
         SubscriptionModel(
             user_id=sample_user.id,
             name="Due in 7 Days",
-            price=9.99,
-            billing_cycle="monthly",
+            price=Decimal("9.99"),
+            billing_cycle=BillingCycleEnum.monthly,
             next_payment_date=today + timedelta(days=7),
             category="video"
         ),
         SubscriptionModel(
             user_id=sample_user.id,
             name="Due in 3 Days",
-            price=5.00,
-            billing_cycle="monthly",
+            price=Decimal("5.00"),
+            billing_cycle=BillingCycleEnum.monthly,
             next_payment_date=today + timedelta(days=3),
             category="books"
         ),
         SubscriptionModel(
             user_id=sample_user.id,
             name="Already Paid",
-            price=12.00,
-            billing_cycle="monthly",
+            price=Decimal("12.00"),
+            billing_cycle=BillingCycleEnum.monthly,
             next_payment_date=today - timedelta(days=1),
             category="news"
         ),
@@ -201,40 +201,40 @@ def test_get_user_upcoming_within_returns_only_user_subs(db_session, sample_user
         SubscriptionModel(
             user_id=sample_user.id,
             name="Due Today",
-            price=10.00,
-            billing_cycle="monthly",
+            price=Decimal("10.00"),
+            billing_cycle=BillingCycleEnum.monthly,
             next_payment_date=today,
             category="music"
         ),
         SubscriptionModel(
             user_id=sample_user.id,
             name="Due in 5 Days",
-            price=15.00,
-            billing_cycle="monthly",
+            price=Decimal("15.00"),
+            billing_cycle=BillingCycleEnum.monthly,
             next_payment_date=today + timedelta(days=5),
             category="video"
         ),
         SubscriptionModel(
             user_id=sample_user.id,
             name="Due in 10 Days (outside window)",
-            price=20.00,
-            billing_cycle="monthly",
+            price=Decimal("20.00"),
+            billing_cycle=BillingCycleEnum.monthly,
             next_payment_date=today + timedelta(days=10),
             category="books"
         ),
         SubscriptionModel(
             user_id=sample_user.id + 1,  # Different user
             name="Other User Due Tomorrow",
-            price=12.00,
-            billing_cycle="monthly",
+            price=Decimal("12.00"),
+            billing_cycle=BillingCycleEnum.monthly,
             next_payment_date=today + timedelta(days=1),
             category="news"
         ),
         SubscriptionModel(
             user_id=sample_user.id,
             name="Already Paid",
-            price=8.00,
-            billing_cycle="monthly",
+            price=Decimal("8.00"),
+            billing_cycle=BillingCycleEnum.monthly,
             next_payment_date=today - timedelta(days=1),
             category="games"
         ),
@@ -258,8 +258,8 @@ def test_get_user_upcoming_within_returns_empty_when_no_matches(db_session, samp
         SubscriptionModel(
             user_id=sample_user.id,
             name="Due in 20 Days",
-            price=25.00,
-            billing_cycle="monthly",
+            price=Decimal("25.00"),
+            billing_cycle=BillingCycleEnum.monthly,
             next_payment_date=today + timedelta(days=20),
             category="fitness"
         )
@@ -276,8 +276,8 @@ def test_get_user_upcoming_within_includes_boundary_day(db_session, sample_user)
         SubscriptionModel(
             user_id=sample_user.id,
             name="Due Exactly in 7 Days",
-            price=30.00,
-            billing_cycle="monthly",
+            price=Decimal("30.00"),
+            billing_cycle=BillingCycleEnum.monthly,
             next_payment_date=today + timedelta(days=7),
             category="education"
         )
@@ -294,32 +294,32 @@ def test_get_monthly_summary_returns_correct_totals(db_session, sample_user):
     sub1 = SubscriptionModel(
         user_id=sample_user.id,
         name="Netflix",
-        price="29.99",
-        billing_cycle="monthly",
+        price=Decimal("29.99"),
+        billing_cycle=BillingCycleEnum.monthly,
         next_payment_date=date(2025, 10, 5),
         category="entertainment"
     )
     sub2 = SubscriptionModel(
         user_id=sample_user.id,
         name="Spotify",
-        price="22.47",
-        billing_cycle="monthly",
+        price=Decimal("22.47"),
+        billing_cycle=BillingCycleEnum.monthly,
         next_payment_date=date(2025, 10, 10),
         category="music"
     )
     sub3 = SubscriptionModel(
         user_id=sample_user.id,
         name="Notion",
-        price="19.99",
-        billing_cycle="monthly",
+        price=Decimal("19.99"),
+        billing_cycle=BillingCycleEnum.monthly,
         next_payment_date=date(2025, 10, 15),
         category="productivity"
     )
     sub4 = SubscriptionModel(
         user_id=sample_user.id,
         name="Disney+",
-        price="29.99",
-        billing_cycle="monthly",
+        price=Decimal("29.99"),
+        billing_cycle=BillingCycleEnum.monthly,
         next_payment_date=date(2025, 10, 5),
         category="entertainment" # entertainment x2
     )
@@ -331,11 +331,11 @@ def test_get_monthly_summary_returns_correct_totals(db_session, sample_user):
 
     # Assert
     assert summary['month'] == "2025-10"
-    assert summary['total_spent'] == pytest.approx(102.44)
+    assert summary['total_spent'] == Decimal("102.44")
     assert summary['by_category'] == {
-        "entertainment": 59.98,
-        "music": 22.47,
-        "productivity": 19.99,
+        "entertainment": Decimal("59.98"),
+        "music": Decimal("22.47"),
+        "productivity": Decimal("19.99")
     }
 
 def test_get_monthly_summary_skips_other_months(db_session, sample_user):
@@ -343,8 +343,8 @@ def test_get_monthly_summary_skips_other_months(db_session, sample_user):
     sub = SubscriptionModel(
         user_id=sample_user.id,
         name="Disney+",
-        price="10.00",
-        billing_cycle="monthly",
+        price=Decimal("10.00"),
+        billing_cycle=BillingCycleEnum.monthly,
         next_payment_date=date(2025, 11, 1),
         category="entertainment"
     )
@@ -356,7 +356,14 @@ def test_get_monthly_summary_skips_other_months(db_session, sample_user):
 
     # Assert
     assert summary['month'] == "2025-10"
-    assert summary['total_spent'] == 0.0
+    assert summary['total_spent'] == Decimal("0.00")
+    assert summary['by_category'] == {}
+
+def test_get_monthly_summary_returns_zero_when_no_subscriptions(sample_user):
+    summary = service.get_monthly_summary(sample_user.id, "2025-08")
+
+    assert summary['month'] == "2025-08"
+    assert summary['total_spent'] == Decimal("0.00")
     assert summary['by_category'] == {}
 
 # legacy safety net
@@ -365,8 +372,8 @@ def test_get_monthly_summary_handles_missing_category(db_session, sample_user):
     sub = SubscriptionModel(
         user_id=sample_user.id,
         name="VPN",
-        price="5.00",
-        billing_cycle="monthly",
+        price=Decimal("5.00"),
+        billing_cycle=BillingCycleEnum.monthly,
         next_payment_date=date(2025, 10, 20),
         category=None
     )
@@ -377,4 +384,17 @@ def test_get_monthly_summary_handles_missing_category(db_session, sample_user):
     summary = service.get_monthly_summary(sample_user.id, "2025-10")
 
     # Assert: fallback on "uncategorized"
-    assert summary['by_category'] == {"uncategorized": 5.00}
+    assert summary['by_category'] == {"uncategorized": Decimal("5.00")}
+
+def test_get_monthly_summary_rounds_to_two_decimal_places(sample_user, subscription_factory):
+    subscription_factory(
+        user_id=sample_user.id,
+        price=Decimal("10.005"),
+        category="test",
+        next_payment_date=date(2025, 7, 1)
+    )
+
+    summary = service.get_monthly_summary(sample_user.id, "2025-07")
+
+    assert summary['total_spent'] == Decimal("10.01")
+    assert summary['by_category']['test'] == Decimal("10.01")

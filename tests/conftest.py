@@ -87,13 +87,21 @@ def user_factory(db_session):
 
 @pytest.fixture
 def subscription_factory(db_session):
-    def _factory(user_id, next_payment_date, name="Netflix"):
+    def _factory(
+        *,
+        user_id,
+        next_payment_date,
+        name="Netflix",
+        price=Decimal("29.99"),
+        billing_cycle=BillingCycleEnum.monthly,
+        category="entertainment",
+    ):
         subscription = SubscriptionModel(
             name=name,
-            price=Decimal("29.99"),
-            billing_cycle=BillingCycleEnum.monthly,
+            price=price,
+            billing_cycle=billing_cycle,
             next_payment_date=next_payment_date,
-            category="Entertainment",
+            category=category,
             user_id=user_id
         )
         db_session.add(subscription)

@@ -1,29 +1,24 @@
 from datetime import date, timedelta
+from decimal import Decimal
 
-from api.models import SubscriptionModel
-
-def test_reminders_upcoming_endpoint_returns_subs(client, db_session, jwt, sample_user):
+def test_reminders_upcoming_endpoint_returns_subs(client, jwt, sample_user, subscription_factory):
     today = date.today()
-    subs = [
-        SubscriptionModel(
-            user_id=sample_user.id,
-            name="Due in 3 Days",
-            price=9.99,
-            billing_cycle="monthly",
-            next_payment_date=today + timedelta(days=3),
-            category="video"
-        ),
-        SubscriptionModel(
-            user_id=sample_user.id,
-            name="Due in 10 Days (outside window)",
-            price=12.00,
-            billing_cycle="monthly",
-            next_payment_date=today + timedelta(days=10),
-            category="books"
-        ),
-    ]
-    db_session.add_all(subs)
-    db_session.commit()
+
+    subscription_factory(
+        user_id=sample_user.id,
+        name="Due in 3 Days",
+        price=Decimal("9.99"),
+        category="video",
+        next_payment_date=today + timedelta(days=3),
+    )
+
+    subscription_factory(
+        user_id=sample_user.id,
+        name="Due in 10 Days (outside window)",
+        price=Decimal("12.00"),
+        category="books",
+        next_payment_date=today + timedelta(days=10),
+    )
 
     response = client.get("/reminders/upcoming?days=7", headers={"Authorization": f"Bearer {jwt}"})
 

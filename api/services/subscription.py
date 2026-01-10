@@ -178,22 +178,20 @@ def get_monthly_summary(user_id: int, month: str | None = None) -> dict[str, obj
     )
 
     total_spent = Decimal("0.00")
-    by_category: dict[str, float] = {}
+    by_category: dict[str, Decimal] = {}
 
     for sub in subs:
-        try:
-            amount = Decimal(sub.price)
-        except ValueError:
-            continue  # skip if the price is not a number
-
+        amount = Decimal(sub.price)
         total_spent += amount
         category = sub.category or "uncategorized"
         by_category[category] = by_category.get(category, Decimal("0.00")) + amount
 
     return {
         "month": month,
-        "total_spent": float(round(total_spent, 2)),
-        "by_category": {k: float(round(v, 2)) for k, v in by_category.items()},
+        "total_spent": total_spent.quantize(Decimal("0.01")),
+        "by_category": {
+            k: v.quantize(Decimal("0.01")) for k, v in by_category.items()
+        }
     }
 
 def get_subscription_by_id(sub_id: int) -> SubscriptionModel:
