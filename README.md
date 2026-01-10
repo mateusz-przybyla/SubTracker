@@ -300,6 +300,8 @@ Coverage: **90%**
 A Postman collection with all endpoints and environment variables is included in the repository `postman/`.
 Import it into Postman to test authentication, subscriptions, reminders and reports easily.
 
+---
+
 ## Possible Production Improvements
 
 ### Batch processing
