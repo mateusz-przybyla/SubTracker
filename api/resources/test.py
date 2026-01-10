@@ -6,7 +6,11 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from api.extensions import db
 from api.models import UserModel
-from api.schemas import ReminderSendTestSchema, StatsSendTestSchema, UserSchema
+from api.schemas import (
+    ReminderSendTestSchema, 
+    StatsSendTestSchema, 
+    UserResponseSchema
+)
 from api.tasks import email_tasks
 
 blp = Blueprint("test", __name__, description="Developer endpoints (authentication tests, email tests, etc.)")
@@ -48,7 +52,7 @@ class TestFreshAuthEndpoint(MethodView):
        
 @blp.route("/users/<int:user_id>")
 class User(MethodView):
-    @blp.response(200, UserSchema, description="User details retrieved successfully.")
+    @blp.response(200, UserResponseSchema, description="User details retrieved successfully.")
     @blp.alt_response(404, description="User not found.")
     def get(self, user_id: int) -> UserModel:
         """Developer endpoint to retrieve user details by user ID."""

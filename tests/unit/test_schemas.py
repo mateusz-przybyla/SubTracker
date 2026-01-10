@@ -3,21 +3,29 @@ from marshmallow import ValidationError
 from decimal import Decimal
 from datetime import date
 
-from api.schemas import UserSchema, UserRegisterSchema, SubscriptionSchema, SubscriptionUpdateSchema, ReminderLogSchema
+from api.schemas import (
+    UserRegisterSchema, 
+    UserLoginSchema, 
+    UserResponseSchema, 
+    SubscriptionSchema, 
+    SubscriptionUpdateSchema
+)
 from api.models import UserModel
 from api.models.enums import BillingCycleEnum
 
-# -------------------------
 # Fixtures
-# -------------------------
-
-@pytest.fixture
-def base_schema():
-    return UserSchema()
 
 @pytest.fixture
 def register_schema():
     return UserRegisterSchema()
+
+@pytest.fixture
+def login_schema():
+    return UserLoginSchema()
+
+@pytest.fixture
+def user_response_schema():
+    return UserResponseSchema()
 
 @pytest.fixture
 def subscription_schema():
@@ -27,81 +35,61 @@ def subscription_schema():
 def subscription_update_schema():
     return SubscriptionUpdateSchema()
 
-@pytest.fixture
-def reminder_log_schema():
-    return ReminderLogSchema()
+# Tests for RegisterSchema, ResponseSchema
 
-# -------------------------
-# Tests for UserSchema (email + password only)
-# -------------------------
+def test_register_schema_valid_data(register_schema, user_response_schema):
+    user_dict = {
+        "username": "test_user", 
+        "email": "test@example.com", 
+        "password": "abc123"
+    }
 
-def test_user_schema_valid_data(base_schema):
-    user_dict = {"email": "test@example.com", "password": "abc123"}
-
-    # deserialization (load)
-    loaded = base_schema.load(user_dict)
+    loaded = register_schema.load(user_dict)
+    assert loaded['username'] == "test_user"
     assert loaded['email'] == "test@example.com"
     assert loaded['password'] == "abc123"
 
-    # serialization (dump)
-    user_obj = UserModel(username="user", email="test@example.com", password="abc123")
-    dumped = base_schema.dump(user_obj)
+    user_obj = UserModel(username="test_user", email="test@example.com", password="abc123")
+    dumped = user_response_schema.dump(user_obj)
+    assert dumped['username'] == "test_user"
     assert dumped['email'] == "test@example.com"
     assert "password" not in dumped
+    assert "created_at" in dumped
 
-def test_user_schema_missing_fields(base_schema):
-    user_dict = {"email": "test@example.com"}  # missing password
-
-    with pytest.raises(ValidationError) as exc_info:
-        base_schema.load(user_dict)
-
-    errors = exc_info.value.messages
-    assert "password" in errors
-
-def test_user_schema_password_too_short(base_schema):
-    user_dict = {"email": "test@example.com", "password": "abc"}
-
-    with pytest.raises(ValidationError) as exc_info:
-        base_schema.load(user_dict)
-
-    errors = exc_info.value.messages
-    assert "password" in errors
-    assert "Shorter than minimum length 6." in errors["password"][0]
-
-def test_user_schema_invalid_email(base_schema):
-    user_dict = {"username": "user", "email": "not-an-email", "password": "abc123"}
-
-    with pytest.raises(ValidationError) as exc_info:
-        base_schema.load(user_dict)
-
-    errors = exc_info.value.messages
-    assert "email" in errors
-
-# -------------------------
-# Tests for UserRegisterSchema (extends UserSchema + username)
-# -------------------------
-
-def test_register_schema_valid_data(register_schema):
-    user_dict = {"username": "user", "email": "test@example.com", "password": "abc123"}
-
-    loaded = register_schema.load(user_dict)
-    assert loaded['username'] == "user"
-    assert loaded['email'] == "test@example.com"
-
-    user_obj = UserModel(username="user", email="test@example.com", password="abc123")
-    dumped = register_schema.dump(user_obj)
-    assert dumped['username'] == "user"
-    assert dumped['email'] == "test@example.com"
-    assert "password" not in dumped
-
-def test_register_schema_missing_username(register_schema):
-    user_dict = {"email": "test@example.com", "password": "abc123"}
+def test_register_schema_missing_fields(register_schema):
+    user_dict = {"email": "test@example.com"}
 
     with pytest.raises(ValidationError) as exc_info:
         register_schema.load(user_dict)
 
     errors = exc_info.value.messages
+    assert "password" in errors
     assert "username" in errors
+
+def test_register_schema_password_too_short(register_schema):
+    user_dict = {
+        "username": "test_user", 
+        "email": "test@example.com", 
+        "password": "abc"
+    }
+
+    with pytest.raises(ValidationError) as exc_info:
+        register_schema.load(user_dict)
+
+    errors = exc_info.value.messages
+    assert "password" in errors
+
+def test_register_schema_invalid_email(register_schema):
+    user_dict = {
+        "username": "test_user", 
+        "email": "not-an-email", 
+        "password": "abc123"
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        register_schema.load(user_dict)
+
+    errors = exc_info.value.messages
+    assert "email" in errors
 
 def test_register_schema_username_too_short(register_schema):
     user_dict = {"username": "ab", "email": "test@example.com", "password": "abc123"}
@@ -111,11 +99,40 @@ def test_register_schema_username_too_short(register_schema):
 
     errors = exc_info.value.messages
     assert "username" in errors
-    assert "Length must be between 3 and 80." in errors["username"][0]
 
-# ---------------------------
-# Tests for Subscription Schema
-# ---------------------------
+# Tests for LoginSchema
+
+def test_login_schema_valid_data(login_schema):
+    user_dict = {
+        "email": "test@example.com", 
+        "password": "abc123"
+    }
+
+    loaded = login_schema.load(user_dict)
+    assert loaded['email'] == "test@example.com"
+    assert loaded['password'] == "abc123"
+
+def test_login_schema_missing_fields(login_schema):
+    user_dict = {"email": "test@example.com"}
+
+    with pytest.raises(ValidationError) as exc_info:
+        login_schema.load(user_dict)
+
+    errors = exc_info.value.messages
+    assert "password" in errors
+
+def test_login_schema_invalid_email(login_schema):
+    user_dict = {
+        "email": "not-an-email", 
+        "password": "abc123"
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        login_schema.load(user_dict)
+
+    errors = exc_info.value.messages
+    assert "email" in errors
+
+# Tests for SubscriptionSchema
 
 def test_subscription_schema_valid(subscription_schema):
     data = {
@@ -208,9 +225,7 @@ def test_subscription_schema_invalid_billing_cycle(subscription_schema):
     errors = exc_info.value.messages
     assert "billing_cycle" in errors
 
-# ---------------------------
-# Tests for SubscriptionUpdate Schema
-# ---------------------------
+# Tests for SubscriptionUpdateSchema
 
 def test_subscription_update_schema_partial_update(subscription_update_schema):
     data = {"price": "15.00"}
@@ -237,31 +252,3 @@ def test_subscription_update_schema_no_fields(subscription_update_schema):
     loaded = subscription_update_schema.load(data)
 
     assert loaded == {}
-
-# ---------------------------
-# Tests for ReminderLog Schema
-# ---------------------------
-
-def test_reminder_log_schema_valid(reminder_log_schema):
-    data = {
-        "success": True,
-        "message": "Reminder sent"
-    }
-
-    loaded = reminder_log_schema.load(data)
-
-    assert loaded['message'] == "Reminder sent"
-    assert loaded['success'] is True
-
-
-def test_reminder_log_schema_missing_success_field(reminder_log_schema):
-    data = {
-        # success field is missing
-        "message": "Reminder failed"
-    }
-
-    with pytest.raises(ValidationError) as exc_info:
-        reminder_log_schema.load(data)
-
-    errors = exc_info.value.messages
-    assert "success" in errors

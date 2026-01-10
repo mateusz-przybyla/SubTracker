@@ -11,7 +11,7 @@ from redis.exceptions import RedisError
 from api.extensions import db
 from api.infra.queues import get_email_queue
 from api.models import UserModel
-from api.schemas import UserSchema, UserRegisterSchema
+from api.schemas import UserRegisterSchema, UserLoginSchema, UserResponseSchema
 from api.services.blocklist import add_jti_to_blocklist
 from api.tasks.email_tasks import send_user_registration_email
 
@@ -55,7 +55,7 @@ class UserRegister(MethodView):
         
 @blp.route("/login")
 class UserLogin(MethodView):
-    @blp.arguments(UserSchema)
+    @blp.arguments(UserLoginSchema)
     @blp.response(200, description="User logged in successfully.")
     @blp.alt_response(401, description="Invalid credentials.")
     def post(self, user_data: dict) -> dict[str, str]:
@@ -90,7 +90,7 @@ class TokenRefresh(MethodView):
 @blp.route("/users/me")
 class UserMe(MethodView):
     @jwt_required()
-    @blp.response(200, UserSchema, description="Authenticated user's profile.")
+    @blp.response(200, UserResponseSchema, description="Authenticated user's profile.")
     def get(self) -> UserModel:
         user_id = get_jwt_identity()
         user = UserModel.query.filter_by(id=user_id).first()

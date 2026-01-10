@@ -198,11 +198,10 @@ def test_get_user_details(client, create_user_details):
     )
 
     assert response.status_code == 200
-    assert response.json == {
-        "id": 1,
-        "email": create_user_details[1],
-        "created_at": response.json["created_at"],
-    }
+    assert response.json['id'] == 1
+    assert response.json['email'] == create_user_details[1]
+    assert response.json['username'] == create_user_details[0]
+    assert "created_at" in response.json
 
 def test_get_user_details_missing(client):
     response = client.get(
