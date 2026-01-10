@@ -6,8 +6,8 @@ from api.models.enums import BillingCycleEnum
 class SubscriptionBaseSchema(Schema):
     id = fields.Int(dump_only=True)
     user_id = fields.Int(dump_only=True)
-    created_at = fields.DateTime(format="%Y-%m-%d %H:%M:%S", dump_only=True)
-    updated_at = fields.DateTime(format="%Y-%m-%d %H:%M:%S", dump_only=True)
+    created_at = fields.DateTime(dump_only=True)
+    updated_at = fields.DateTime(dump_only=True)
 
     def get_billing_cycle(self, obj):
         return obj.billing_cycle.value if obj.billing_cycle else None
