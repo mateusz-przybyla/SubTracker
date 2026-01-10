@@ -43,7 +43,8 @@ class UserRegister(MethodView):
                 send_user_registration_email, 
                 user.email, 
                 user.username,
-                retry=Retry(max=3, interval=[30, 60, 120])
+                retry=Retry(max=3, interval=[30, 60, 120]),
+                job_timeout=30
             )
         except RedisError as e:
             current_app.logger.error(

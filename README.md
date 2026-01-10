@@ -23,6 +23,9 @@ Includes JWT authentication, MySQL, Redis, background jobs with RQ, scheduled ta
 - [Validation and Errors](#validation-and-errors)
 - [Testing](#testing)
 - [Postman Collection](#postman-collection)
+- [Possible Production Improvements](#possible-production-improvements)
+    - [Batch processing](#batch-processing)
+    - [Idempotency and duplicate protection](#idempotency--duplicate-protection)
 
 ---
 
@@ -40,7 +43,7 @@ Includes JWT authentication, MySQL, Redis, background jobs with RQ, scheduled ta
 - Environment configuration via `.env` and `.flaskenv`
 - Docker Compose including API, DB, Redis, workers & scheduler
 - Unit, service and integration tests with **pytest**
-- Test coverage: **89%**
+- Test coverage: **90%**
 - Postman collection with all endpoints and variables
 
 ---
@@ -288,7 +291,7 @@ Test structure:
 - `tests/service/`
 - `tests/integration/`
 
-Coverage: **89%**
+Coverage: **90%**
 
 ---
 
@@ -296,3 +299,25 @@ Coverage: **89%**
 
 A Postman collection with all endpoints and environment variables is included in the repository `postman/`.
 Import it into Postman to test authentication, subscriptions, reminders and reports easily.
+
+## Possible Production Improvements
+
+### Batch processing
+
+Currently, orchestration tasks load all users or subscriptions into memory at once.
+In a production system, this should be replaced with batch iteration, e.g.:
+
+- iterating users in chunks (e.g. 1000 at a time) for report jobs
+- iterating subscriptions in chunks for reminder jobs
+
+This prevents excessive memory usage and allows better control over job enqueueing rate.
+
+### Idempotency and duplicate protection
+
+Currently, jobs assume "at most once" execution semantics.
+In production, additional safeguards should be added, e.g.:
+
+- Redis-based distributed locks per (user, month) or (subscription, date)
+- Database-level uniqueness constraints for logs
+
+This prevents duplicate emails in case of retries, crashes or scheduler misfires.
