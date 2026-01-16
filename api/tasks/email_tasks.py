@@ -1,15 +1,16 @@
 import os
 import requests
 import jinja2
+import logging
 from typing import Any
 from datetime import date
-from flask import current_app
 
 from api.exceptions import EmailTemporaryError, EmailPermanentError
 
 DOMAIN = os.getenv("MAILGUN_DOMAIN")
 template_loader = jinja2.FileSystemLoader("api/templates")
 template_env = jinja2.Environment(loader=template_loader)
+logger = logging.getLogger(__name__)
 
 def render_template(template_filename: str, **context: Any) -> str:
     """Render a Jinja2 template with the given context."""
@@ -58,14 +59,14 @@ def send_user_registration_email(email: str, username: str) -> None:
         )
     except EmailPermanentError as e:
         # Log the permanent error without retrying
-        current_app.logger.error(
+        logger.error(
             "Permanent error sending registration email.",
             extra={"error": str(e), "user_email": email}
         )
         return
     except EmailTemporaryError as e:
         # Log the temporary error and raise to trigger a retry
-        current_app.logger.warning(
+        logger.warning(
             "Temporary error sending registration email.",
             extra={"error": str(e), "user_email": email}
         )
