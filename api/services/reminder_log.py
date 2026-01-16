@@ -25,10 +25,11 @@ def get_user_reminder_logs_by_subscription(sub_id: int, user_id: int) -> List[Re
     ).order_by(ReminderLogModel.sent_at.desc()).all()
 
 def get_user_reminder_log_by_id(log_id: int, user_id: int) -> ReminderLogModel:
-    reminder_log = ReminderLogModel.query.join(SubscriptionModel).filter(
+    reminder_log = ReminderLogModel.query.filter(
         ReminderLogModel.id == log_id,
-        SubscriptionModel.user_id == user_id
+        ReminderLogModel.subscription.has(user_id=user_id)
     ).first()
+    
     if not reminder_log:
         raise ReminderLogNotFoundError("Reminder log not found.")
     return reminder_log
