@@ -41,7 +41,7 @@ def check_upcoming_payments() -> None:
                 extra={"error": str(e), "sub_id": sub.id}
             )
 
-def send_single_subscription_reminder(sub_id: int, app: Flask | None = None) -> None:
+def send_single_subscription_reminder(sub_id: int) -> None:
     """
     Send a reminder email for a single subscription.
 

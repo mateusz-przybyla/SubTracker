@@ -8,7 +8,7 @@ Includes JWT authentication, MySQL, Redis, background jobs with RQ, scheduled ta
 ## Table of Contents
 
 - [Features](#features)
-- [Requirements](#requirements)
+- [Tech Stack](#tech-Stack)
 - [Installation](#installation)
     - [Docker setup](#docker-setup)
 - [Database Schema](#database-schema)
@@ -48,13 +48,15 @@ Includes JWT authentication, MySQL, Redis, background jobs with RQ, scheduled ta
 
 ---
 
-## Requirements
+## Tech Stack
 
 - Python 3.13
-- Flask
-- MySQL + SQLAlchemy
+- Flask + Flask-Smorest
+- SQLAlchemy + Alembic
 - Redis + RQ
+- MySQL
 - Mailgun
+- JWT (flask-jwt-extended)
 - Docker
 
 See [requirements.txt](requirements.txt) and [requirements-dev.txt](requirements-dev.txt).
