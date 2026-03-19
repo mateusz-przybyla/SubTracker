@@ -19,7 +19,6 @@ def generate_monthly_report() -> None:
     Enqueue monthly summary report jobs for all users.
 
     This task is responsible only for orchestration:
-    - Loads Flask application context.
     - Determines the target month.
     - Fetches all users.
     - Enqueues a separate background job per user.
@@ -50,7 +49,6 @@ def send_single_user_monthly_report(user_id: int, month: str) -> None:
     Generate and send a monthly subscription summary for a single user.
 
     This task:
-    - Loads Flask application context.
     - Calculates user's monthly spending summary.
     - Skips users with zero spending.
     - Sends summary email.
