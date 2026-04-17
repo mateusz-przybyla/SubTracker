@@ -46,15 +46,15 @@ The system was designed with a strong focus on real-world backend challenges suc
 
 ## Real-world Problems Solved
 
-- Background processing\
+- **Background processing**\
 Each reminder and report is processed as an isolated job with retry capability.
-- Task separation & scalability\
+- **Task separation & scalability**\
 Independent queues and workers for emails, reminders and reports allow horizontal scaling.
-- Failure handling & observability\
+- **Failure handling & observability**\
 Every reminder attempt is logged (success/failure).
-- Recurring job scheduling\
+- **Recurring job scheduling**\
 Daily and monthly processes handled via cron-like scheduler.
-- Secure authentication lifecycle\
+- **Secure authentication lifecycle**\
 JWT with refresh tokens and Redis-based revocation.
 
 ---
@@ -183,6 +183,8 @@ Import it into Postman to test authentication, subscriptions, reminders and repo
 
 - Idempotency (duplicate job protection)
 - Monitoring (e.g. Prometheus / Grafana)
+
+--- 
 
 ## Status
 
